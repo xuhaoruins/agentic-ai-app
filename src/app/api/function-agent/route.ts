@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function queryPricingWithStreamingResponse(prompt: string): Promise<ReadableStream> {
+async function queryPricingWithStreamingResponse(prompt: string): Promise<ReadableStream> {
   // Check environment variables with detailed logging
   const missingEnvVars = [];
   
