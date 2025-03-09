@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  poweredByHeader: false,
+  generateEtags: false,
+  compress: true
 };
 
 module.exports = nextConfig;
