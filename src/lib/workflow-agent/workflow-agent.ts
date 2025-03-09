@@ -2,7 +2,7 @@ import { OpenAI } from "llamaindex";
 import { WorkflowState } from "../types";
 import { ChatMessage } from "../types";
 
-// 简化版 Agent 实现，支持流式输出
+// 简化版 Agent 实现，支持流式输出，不工作
 export const createWorkflowAgent = async (
   openaiApiKey: string,
   tavilyApiKey: string,
