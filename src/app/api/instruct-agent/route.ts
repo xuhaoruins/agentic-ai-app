@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
               });
               
               // Format the top 3 results for inclusion in the message
-              webResults = top3Results.map(result => 
+              webResults = top3Results.map((result: SearchResult) => 
                 `Title: ${result.title}\nURL: ${result.url}\nContent: ${result.content}`
               ).join('\n\n');
             } catch (error) {
