@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         // Run the workflow
         const handler = agentWorkflow.run({ userMsg });
 
-        let currentAgent: string | null = null;
+        let currentAgent: string | null | undefined = null;
 
         // Process events
         for await (const event of handler.streamEvents()) {
