@@ -52,7 +52,21 @@ export const createWorkflowAgent = async (
             const contentText = typeof content === 'string' 
               ? content 
               : Array.isArray(content)
-                ? content.map(item => item.text || item.toString()).join('')
+                ? content.map(item => {
+                    // Safe property access with type checking
+                    if (typeof item === 'object' && item !== null) {
+                      // Check if it's a text content item
+                      if ('text' in item) {
+                        return item.text;
+                      }
+                      // Handle image content or other types
+                      else if ('image_url' in item) {
+                        return '[Image content]';
+                      }
+                    }
+                    // Default fallback
+                    return String(item);
+                  }).join('')
                 : String(content);
                 
             // 每次获取到新的内容块时，都产生一个输出
