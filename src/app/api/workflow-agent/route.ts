@@ -56,12 +56,13 @@ export async function POST(req: NextRequest) {
               data: { agent_name: currentAgent }
             };
           }
-          // Process agent output
-          else if (event.type === 'agentOutput') {
-            if (event.response?.content) {
+          // Process agent output - 添加安全检查以防止访问 undefined 的 content 属性
+          else if (event.type === 'agentOutput' && event.response) {
+            const content = event.response.content || '';
+            if (content) {
               eventToSend = {
                 type: 'agent_output',
-                data: { content: event.response.content }
+                data: { content }
               };
             }
           }

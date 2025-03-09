@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WorkflowAgentEvent } from '@/lib/types';
 import ReactMarkdown from 'react-markdown';
 
@@ -10,10 +10,46 @@ interface AgentLogProps {
 
 export default function AgentLog({ events, loading }: AgentLogProps) {
   const logEndRef = React.useRef<HTMLDivElement>(null);
+  const [reportContent, setReportContent] = useState<string>('');
+  const [hasReport, setHasReport] = useState<boolean>(false);
 
-  React.useEffect(() => {
+  // 自动滚动到底部
+  useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [events]);
+
+  // 提取 WriteAgent 的完整报告内容
+  useEffect(() => {
+    const writeAgentOutput = events.filter(
+      event => 
+        event.type === 'agent_output' && 
+        event.data.content && 
+        events.some(e => e.type === 'agent_change' && e.data.agent_name === 'WriteAgent')
+    );
+    
+    if (writeAgentOutput.length > 0) {
+      const lastReport = writeAgentOutput[writeAgentOutput.length - 1].data.content || '';
+      // 移除 REPORT_COMPLETE 标记
+      const cleanedReport = lastReport.replace('REPORT_COMPLETE', '').trim();
+      setReportContent(cleanedReport);
+      setHasReport(!!cleanedReport);
+    }
+  }, [events]);
+
+  // 下载 Markdown 文件
+  const downloadMarkdown = () => {
+    if (!reportContent) return;
+    
+    const blob = new Blob([reportContent], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'report.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const renderEvent = (event: WorkflowAgentEvent, index: number) => {
     const { type, data } = event;
@@ -85,8 +121,21 @@ export default function AgentLog({ events, loading }: AgentLogProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4">
-      <h2 className="text-lg font-bold mb-4">Agent Workflow Execution</h2>
-      <div className="overflow-y-auto max-h-[600px] space-y-2">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-bold">Agent Workflow Execution</h2>
+        {hasReport && (
+          <button
+            onClick={downloadMarkdown}
+            className="flex items-center space-x-1 px-3 py-1.5 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          >
+            <span className="material-icons-outlined text-sm">download</span>
+            <span>Download Report</span>
+          </button>
+        )}
+      </div>
+      
+      {/* 固定高度的滚动区域 */}
+      <div className="overflow-y-auto h-[500px] border border-gray-200 rounded-lg p-2 space-y-2">
         {events.length === 0 && !loading ? (
           <div className="text-gray-500 text-center py-8">
             No events yet. Start a workflow by submitting your request.
