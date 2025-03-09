@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
             currentAgent = event.currentAgentName;
             eventToSend = {
               type: 'agent_change',
-              data: { agent_name: currentAgent }
+              data: { agent_name: currentAgent ?? undefined }
             };
           }
           // Process agent output - 添加安全检查以防止访问 undefined 的 content 属性
