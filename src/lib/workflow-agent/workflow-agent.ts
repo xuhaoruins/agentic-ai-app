@@ -128,13 +128,21 @@ export const createWorkflowAgent = async (
             if (typeof chunk.delta === 'string') {
               content = chunk.delta;
             } 
-            else if (chunk.delta && typeof chunk.delta === 'object' && 'content' in chunk.delta) {
-              content = String(chunk.delta.content || '');
+            else if (chunk.delta && typeof chunk.delta === 'object') {
+              // Use a type assertion to safely access the content property
+              const deltaObj = chunk.delta as { content?: string };
+              if (deltaObj.content !== undefined) {
+                content = String(deltaObj.content);
+              }
             }
             else if (Array.isArray(chunk.choices) && chunk.choices.length > 0) {
-              const delta = chunk.choices[0].delta;
-              if (delta && typeof delta === 'object' && 'content' in delta) {
-                content = String(delta.content || '');
+              const choice = chunk.choices[0];
+              if (choice && typeof choice.delta === 'object' && choice.delta) {
+                // Use a type assertion for choices.delta as well
+                const deltaObj = choice.delta as { content?: string };
+                if (deltaObj.content !== undefined) {
+                  content = String(deltaObj.content);
+                }
               }
             }
             else if ('content' in chunk) {
