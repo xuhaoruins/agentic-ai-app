@@ -120,9 +120,27 @@ export const createWorkflowAgent = async (
         let updatedState = {...state};
 
         for await (const chunk of stream) {
-          // Access the content from the chunk based on its actual structure
-          // LlamaIndex OpenAI streaming chunks typically have content in delta.content or choices[0].delta.content
-          const content = chunk.delta?.content || chunk.choices?.[0]?.delta?.content || '';
+          // Handle different chunk structures safely
+          let content = '';
+          
+          if (chunk && typeof chunk === 'object') {
+            // Try various ways to extract content from the chunk
+            if (typeof chunk.delta === 'string') {
+              content = chunk.delta;
+            } 
+            else if (chunk.delta && typeof chunk.delta === 'object' && 'content' in chunk.delta) {
+              content = String(chunk.delta.content || '');
+            }
+            else if (Array.isArray(chunk.choices) && chunk.choices.length > 0) {
+              const delta = chunk.choices[0].delta;
+              if (delta && typeof delta === 'object' && 'content' in delta) {
+                content = String(delta.content || '');
+              }
+            }
+            else if ('content' in chunk) {
+              content = String(chunk.content || '');
+            }
+          }
           
           if (content) {
             accumulatedContent += content;
@@ -209,7 +227,7 @@ export const createWorkflowAgent = async (
             
             try {
               for await (const result of currentAgent.executeTaskStreaming(userInput, this.state)) {
-                // 累积完整响应
+                // 素积完整响应
                 if (result.contentChunk) {
                   fullResponse += result.contentChunk;
                   
