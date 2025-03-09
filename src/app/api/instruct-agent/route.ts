@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
               }
 
               // Then update the forEach loop with proper type annotation
-              top3Results.forEach((result: SearchResult, index) => {
+              top3Results.forEach((result: SearchResult, index: number) => {
                 console.log(`[${index + 1}] Title: ${result.title}`);
                 console.log(`    URL: ${result.url}`);
                 console.log(`    Content: ${result.content.substring(0, 100)}...`);
