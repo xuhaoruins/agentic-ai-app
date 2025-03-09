@@ -20,15 +20,6 @@ export interface ChatMessage {
   id?: string;
 }
 
-export interface MarketingContent {
-  prompt: string;
-  content: string;
-  productValues: string[];
-  emotionValues: string[];
-  ageRange: [number, number];
-  wordCount: number;
-}
-
 export interface PricingItem {
   armSkuName: string;
   retailPrice: number;
@@ -62,4 +53,27 @@ export interface StreamingResponseData {
     results?: SearchResult[];
     error?: string;
   };
+}
+
+// Workflow Agent Types
+export interface WorkflowAgentRequest {
+  userMsg: string;
+}
+
+export interface WorkflowAgentEvent {
+  type: 'agent_change' | 'agent_output' | 'tool_call' | 'tool_result';
+  data: {
+    agent_name?: string;
+    content?: string;
+    tool_name?: string;
+    tool_args?: Record<string, any>;
+    tool_output?: string;
+    tool_calls?: Array<{tool_name: string}>;
+  };
+}
+
+export interface WorkflowState {
+  research_notes: Record<string, string>;
+  report_content: string;
+  review: string;
 }

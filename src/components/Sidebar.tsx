@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface SidebarProps {
   isExpanded: boolean;
@@ -28,7 +27,7 @@ export default function Sidebar({ isExpanded, toggleSidebar }: SidebarProps) {
         
         {/* Sidebar content */}
         <div className={`flex flex-col overflow-hidden ${isExpanded ? 'items-start px-4' : 'items-center px-0'}`}>
-          {/* Your sidebar navigation items */}
+          {/* Navigation items */}
           <Link href="/" className="flex items-center py-3 px-2 rounded-md hover:bg-white/10 w-full">
             <span className="material-icons-outlined">home</span>
             {isExpanded && <span className="ml-2">Home</span>}
@@ -44,7 +43,10 @@ export default function Sidebar({ isExpanded, toggleSidebar }: SidebarProps) {
             {isExpanded && <span className="ml-2">Function Agent</span>}
           </Link>
           
-
+          <Link href="/workflow-agent" className="flex items-center py-3 px-2 rounded-md hover:bg-white/10 w-full">
+            <span className="material-icons-outlined">account_tree</span>
+            {isExpanded && <span className="ml-2">Workflow Agent</span>}
+          </Link>
         </div>
       </div>
     </div>
