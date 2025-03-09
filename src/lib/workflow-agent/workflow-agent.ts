@@ -221,7 +221,7 @@ export const createWorkflowAgent = async (
     
     run(input: { userMsg: string }) {
       return {
-        streamEvents: async function*() {
+        streamEvents: async function*(this: WorkflowController) {
           let currentAgentName = this.rootAgentName;
           let userInput = input.userMsg;
           
