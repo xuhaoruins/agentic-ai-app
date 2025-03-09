@@ -120,8 +120,11 @@ export const createWorkflowAgent = async (
         let updatedState = {...state};
 
         for await (const chunk of stream) {
-          if (chunk && chunk.message && typeof chunk.message.content === 'string') {
-            const content = chunk.message.content;
+          // Access the content from the chunk based on its actual structure
+          // LlamaIndex OpenAI streaming chunks typically have content in delta.content or choices[0].delta.content
+          const content = chunk.delta?.content || chunk.choices?.[0]?.delta?.content || '';
+          
+          if (content) {
             accumulatedContent += content;
             
             // 每次获取到新的内容块时，都产生一个输出
