@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:production": "next build",
-    "postbuild": "next-on-netlify"
+    "build:production": "next build"
   },
   "dependencies": {
     "@azure/identity": "^4.7.0",
