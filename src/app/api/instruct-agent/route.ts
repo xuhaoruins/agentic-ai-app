@@ -49,7 +49,17 @@ export async function POST(req: NextRequest) {
               
               // Log each individual search result
               console.log(`Found ${searchResults.length} results, using top 3:`);
-              top3Results.forEach((result, index) => {
+              
+              // Add this interface definition before the forEach call
+              interface SearchResult {
+                title: string;
+                url: string;
+                content: string;
+                // Add any other properties that might be present in search results
+              }
+
+              // Then update the forEach loop with proper type annotation
+              top3Results.forEach((result: SearchResult, index) => {
                 console.log(`[${index + 1}] Title: ${result.title}`);
                 console.log(`    URL: ${result.url}`);
                 console.log(`    Content: ${result.content.substring(0, 100)}...`);
