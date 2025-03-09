@@ -135,18 +135,26 @@ export const createWorkflowAgent = async (
                 content = String(deltaObj.content);
               }
             }
-            else if (Array.isArray(chunk.choices) && chunk.choices.length > 0) {
-              const choice = chunk.choices[0];
-              if (choice && typeof choice.delta === 'object' && choice.delta) {
-                // Use a type assertion for choices.delta as well
-                const deltaObj = choice.delta as { content?: string };
-                if (deltaObj.content !== undefined) {
-                  content = String(deltaObj.content);
+            // Safely check for choices without directly accessing the property
+            else {
+              // Use type assertion and 'in' operator to check for properties
+              const anyChunk = chunk as any;
+              
+              // Check if choices exists and handle it
+              if ('choices' in anyChunk && Array.isArray(anyChunk.choices) && anyChunk.choices.length > 0) {
+                const choice = anyChunk.choices[0];
+                if (choice && typeof choice.delta === 'object' && choice.delta) {
+                  // Use a type assertion for delta
+                  const deltaObj = choice.delta as { content?: string };
+                  if (deltaObj.content !== undefined) {
+                    content = String(deltaObj.content);
+                  }
                 }
               }
-            }
-            else if ('content' in chunk) {
-              content = String(chunk.content || '');
+              // Final fallback check for content property
+              else if ('content' in anyChunk) {
+                content = String(anyChunk.content || '');
+              }
             }
           }
           
