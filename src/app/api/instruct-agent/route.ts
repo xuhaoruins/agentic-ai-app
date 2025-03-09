@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
             // 系统提示始终位于第一位
             { role: 'system', content: systemPrompt },
             // 添加消息历史（不包括系统消息）
-            ...messages.filter(m => m.role !== 'system').map(msg => ({
+            ...messages.filter((m: ChatMessage) => m.role !== 'system').map((msg: ChatMessage) => ({
               role: msg.role as "system" | "user" | "assistant",
               content: msg.content
             })),
