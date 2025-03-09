@@ -48,29 +48,36 @@ export const createWorkflowAgent = async (
           let updatedState = {...state};
 
           if (content) {
+            // Convert MessageContent to string if it's not already a string
+            const contentText = typeof content === 'string' 
+              ? content 
+              : Array.isArray(content)
+                ? content.map(item => item.text || item.toString()).join('')
+                : String(content);
+                
             // 每次获取到新的内容块时，都产生一个输出
-            yield { contentChunk: content };
+            yield { contentChunk: contentText };
             
             // 检查是否有特殊标记来确定下一个代理
-            if (this.name === "ResearchAgent" && content.includes("RESEARCH_COMPLETE")) {
+            if (this.name === "ResearchAgent" && contentText.includes("RESEARCH_COMPLETE")) {
               nextAgent = "WriteAgent";
               const noteTitle = "Research Notes";
               updatedState.research_notes = {
                 ...updatedState.research_notes,
-                [noteTitle]: content.replace("RESEARCH_COMPLETE", "").trim()
+                [noteTitle]: contentText.replace("RESEARCH_COMPLETE", "").trim()
               };
             } 
-            else if (this.name === "WriteAgent" && content.includes("REPORT_COMPLETE")) {
+            else if (this.name === "WriteAgent" && contentText.includes("REPORT_COMPLETE")) {
               nextAgent = "ReviewAgent";
-              updatedState.report_content = content.replace("REPORT_COMPLETE", "").trim();
+              updatedState.report_content = contentText.replace("REPORT_COMPLETE", "").trim();
             }
             else if (this.name === "ReviewAgent") {
-              if (content.includes("REVIEW_COMPLETE")) {
-                updatedState.review = content.replace("REVIEW_COMPLETE", "").trim();
+              if (contentText.includes("REVIEW_COMPLETE")) {
+                updatedState.review = contentText.replace("REVIEW_COMPLETE", "").trim();
                 // 工作流结束
-              } else if (content.includes("REVISE_REPORT")) {
+              } else if (contentText.includes("REVISE_REPORT")) {
                 nextAgent = "WriteAgent";
-                updatedState.review = content.replace("REVISE_REPORT", "").trim();
+                updatedState.review = contentText.replace("REVISE_REPORT", "").trim();
               }
             }
           }
