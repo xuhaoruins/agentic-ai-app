@@ -1,0 +1,601 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import remarkGfm from 'remark-gfm';
+import { ChatMessage } from '@/lib/types';
+import { tools, models } from '@/lib/instruct-agent/tools-config';
+import { extractTextFromFile } from '@/lib/instruct-agent/file-parser';
+
+interface CodeProps {
+  node?: any;
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+export default function InstructAgentPage() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedTool, setSelectedTool] = useState(tools[0]);
+  const [selectedModel, setSelectedModel] = useState(models[0]);
+  const [systemPrompt, setSystemPrompt] = useState(tools[0].systemPrompt);
+  const [error, setError] = useState<string | null>(null);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const tool = tools.find(t => t.id === selectedTool.id);
+    if (tool) setSystemPrompt(tool.systemPrompt);
+  }, [selectedTool]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleToolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const tool = tools.find(t => t.id === e.target.value);
+    if (tool) setSelectedTool(tool);
+  };
+
+  const resetPrompt = () => {
+    const tool = tools.find(t => t.id === selectedTool.id);
+    if (tool) setSystemPrompt(tool.systemPrompt);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    setUploadedFile(file);
+    setIsProcessingFile(true);
+    
+    try {
+      const text = await extractTextFromFile(file);
+      setFileContent(text);
+      
+      const fileMessage = { 
+        role: 'assistant', 
+        content: `Processed file: ${file.name}\nSize: ${(file.size / 1024).toFixed(2)} KB\nType: ${file.type}`
+      };
+      setMessages(prev => [...prev, fileMessage]);
+    } catch (err) {
+      console.error('Error processing file:', err);
+      setError('Failed to process the uploaded file');
+    } finally {
+      setIsProcessingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if ((!input.trim() && !fileContent) || isLoading) return;
+    setError(null);
+
+    // Combine user input with file content if available
+    const combinedInput = fileContent 
+      ? `${input}\n\nDocument Content:\n${fileContent}`
+      : input;
+
+    const userMessage: ChatMessage = { role: 'user', content: input };
+    
+    // Show original input in UI but send formatted message to API
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setFileContent(null);
+    setUploadedFile(null);
+    setIsLoading(true);
+
+    try {
+      // Add empty assistant message to show loading state
+      const assistantMessageId = `assistant-${Date.now()}`;
+      setMessages(prev => [...prev, { role: 'assistant', content: '', id: assistantMessageId }]);
+
+      // 只将用户消息发送给API，不包括系统消息
+      // 系统消息将由后端根据选定的工具添加
+      const messageHistory = messages.filter(m => m.role !== 'system');
+
+      const response = await fetch('/api/instruct-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messageHistory,
+          systemPrompt: systemPrompt,
+          prompt: combinedInput,
+          tool: selectedTool.id,
+          model: selectedModel.id,
+          webSearchEnabled
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader available');
+
+      // 流式处理逻辑
+      const decoder = new TextDecoder();
+      let accumulatedContent = '';
+      let accumulatedStream = ''; // 用于积累SSE片段
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        // 解码当前块并添加到累积的流数据中
+        const chunk = decoder.decode(value, { stream: true });
+        accumulatedStream += chunk;
+        
+        // 处理完整的SSE消息
+        const messages = accumulatedStream.split('\n\n');
+        // 保留最后一个可能不完整的消息用于下一次迭代
+        accumulatedStream = messages.pop() || '';
+        
+        // 处理所有完整的消息
+        for (const message of messages) {
+          if (message.trim() && message.startsWith('data: ')) {
+            const content = message.replace(/^data: /, '');
+            try {
+              // 尝试解析JSON内容
+              const parsedContent = JSON.parse(content);
+              
+              // 处理错误消息
+              if (parsedContent.error) {
+                setError(parsedContent.error);
+                setMessages(prev => prev.slice(0, -1)); // 移除助手的消息
+                setIsLoading(false);
+                return;
+              }
+              
+              // 处理正常的字符串内容
+              if (typeof parsedContent === 'string') {
+                accumulatedContent += parsedContent;
+                updateAssistantMessage(assistantMessageId, accumulatedContent);
+              }
+            } catch (e) {
+              // 非JSON内容，直接使用
+              accumulatedContent += content;
+              updateAssistantMessage(assistantMessageId, accumulatedContent);
+            }
+          }
+        }
+        // After updates, ensure we're scrolled to bottom
+        scrollToBottom();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
+      // Remove the assistant's message if there was an error
+      setMessages(prev => prev.slice(0, -1)); 
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 辅助函数：更新助手的消息
+  const updateAssistantMessage = (id: string, content: string) => {
+    setMessages(prev => {
+      return prev.map(msg => {
+        // 按ID查找或退化为最后一条助手消息
+        if ((msg.id === id) || 
+            (!id && msg.role === 'assistant' && prev.indexOf(msg) === prev.length - 1)) {
+          return { ...msg, content };
+        }
+        return msg;
+      });
+    });
+    // Scroll to bottom as content updates
+    scrollToBottom();
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  // 更新 MessageContent 组件，支持更好的 Markdown 渲染
+  const MessageContent = ({ content }: { content: string }) => {
+    // Ensure content is always a string
+    const safeContent = typeof content === 'string' ? content : '';
+    
+    return (
+      <div className="prose prose-sm max-w-none prose-gray dark:prose-invert font-medium text-gray-900">
+        <ReactMarkdown
+          components={{
+            // Properly handle paragraphs
+            p: ({ children }) => (
+              <p className="mb-4 last:mb-0">{children}</p>
+            ),
+            // Handle headings with high contrast
+            h1: ({ children }) => (
+              <h1 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-1 mb-3">{children}</h1>
+            ),
+            h2: ({ children }) => (
+              <h2 className="text-lg font-bold text-gray-800 mb-3">{children}</h2>
+            ),
+            h3: ({ children }) => (
+              <h3 className="text-base font-bold text-gray-800 mb-2">{children}</h3>
+            ),
+            h4: ({ children }) => (
+              <h4 className="text-base font-semibold text-gray-800 mb-2">{children}</h4>
+            ),
+            h5: ({ children }) => (
+              <h5 className="text-sm font-semibold text-gray-800 mb-1">{children}</h5>
+            ),
+            h6: ({ children }) => (
+              <h6 className="text-sm font-semibold text-gray-800 mb-1">{children}</h6>
+            ),
+            // Handle bold text with high contrast
+            strong: ({ children }) => (
+              <strong className="font-bold text-gray-900">{children}</strong>
+            ),
+            // Handle emphasis with high contrast
+            em: ({ children }) => (
+              <em className="italic text-gray-800">{children}</em>
+            ),
+            // Handle links with better styling
+            a: ({ href, children }) => (
+              <a href={href} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">{children}</a>
+            ),
+            // Handle line breaks properly for multi-language support
+            br: () => <br />,
+            // Handle lists with better spacing
+            ul: ({ children }) => (
+              <ul className="list-disc pl-5 mb-4 space-y-1">{children}</ul>
+            ),
+            ol: ({ children }) => (
+              <ol className="list-decimal pl-5 mb-4 space-y-1">{children}</ol>
+            ),
+            li: ({ children }) => (
+              <li className="mb-1">{children}</li>
+            ),
+            // Handle blockquotes with better styling
+            blockquote: ({ children }) => (
+              <blockquote className="border-l-4 border-gray-300 pl-3 italic text-gray-700 mb-4">{children}</blockquote>
+            ),
+            // Handle code blocks with proper formatting
+            code({ node, inline, className, children, ...props }: CodeProps) {
+              const match = /language-(\w+)/.exec(className || '');
+              // Ensure children is always a string
+              const codeContent = Array.isArray(children) 
+                ? children.join('') 
+                : typeof children === 'string' 
+                  ? children 
+                  : String(children || '');
+              
+              return !inline && match ? (
+                <div className="relative group">
+                  <button
+                    onClick={() => copyToClipboard(codeContent)}
+                    className="absolute right-2 top-2 p-1 rounded bg-gray-700 text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Copy code"
+                  >
+                    <span className="material-icons-outlined text-sm">content_copy</span>
+                  </button>
+                  <SyntaxHighlighter
+                    {...props}
+                    style={vscDarkPlus}
+                    language={match[1]}
+                    PreTag="div"
+                    className="rounded-md"
+                  >
+                    {codeContent.replace(/\n$/, '')}
+                  </SyntaxHighlighter>
+                </div>
+              ) : (
+                <code {...props} className={`${className} bg-gray-200 text-gray-900 rounded px-1 py-0.5`}>
+                  {children}
+                </code>
+              );
+            }
+          }}
+          remarkPlugins={[remarkGfm]}
+        >
+          {safeContent || ' '}
+        </ReactMarkdown>
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto h-screen flex flex-col py-4 px-4">
+      {/* 注入自定义的选择样式 - 改为直接使用模板字符串 */}
+      <style jsx global>{`
+        .instruction-template::selection {
+          background-color: rgba(59, 130, 246, 0.3); /* 蓝色半透明 */
+          color: #1e3a8a;
+        }
+        .instruction-template::-moz-selection {
+          background-color: rgba(59, 130, 246, 0.3);
+          color: #1e3a8a;
+        }
+      `}</style>
+      
+      <style jsx global>{`
+        .user-message::selection {
+          background-color: rgba(255, 255, 255, 0.3);
+          color: white;
+        }
+        .user-message::-moz-selection {
+          background-color: rgba(255, 255, 255, 0.3);
+          color: white;
+        }
+        .assistant-message::selection {
+          background-color: rgba(59, 130, 246, 0.2);
+          color: #1e40af;
+        }
+        .assistant-message::-moz-selection {
+          background-color: rgba(59, 130, 246, 0.2);
+          color: #1e40af;
+        }
+        /* Markdown 内容的选择样式 */
+        .prose::selection {
+          background-color: rgba(79, 70, 229, 0.2);
+          color: #312e81;
+        }
+        .prose::-moz-selection {
+          background-color: rgba(79, 70, 229, 0.2);
+          color: #312e81;
+        }
+        /* 代码块选择样式 */
+        pre code::selection {
+          background-color: rgba(255, 255, 255, 0.2) !important;
+          color: #e5e7eb !important;
+        }
+        pre code::-moz-selection {
+          background-color: rgba(255, 255, 255, 0.2) !important;
+          color: #e5e7eb !important;
+        }
+      `}</style>
+
+      <div className="flex justify-between items-center bg-white p-4 rounded-lg border-3 border-blue-300 shadow-sm">
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          Instruct Agent
+        </h1>
+        <div className="flex gap-4">
+          <div className="relative border-3 border-blue-300 hover:border-blue-400 transition-colors rounded-lg shadow-sm">
+            <select
+              value={selectedTool.id}
+              onChange={handleToolChange}
+              className="appearance-none bg-white px-4 py-2 pr-8 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+              aria-label="Select tool"
+              title="Select tool"
+            >
+              {tools.map(tool => (
+                <option key={tool.id} value={tool.id}>
+                  {tool.name}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+              </svg>
+            </div>
+          </div>
+          
+          <div className="relative border-3 border-blue-300 hover:border-blue-400 transition-colors rounded-lg shadow-sm">
+            <select
+              value={selectedModel.id}
+              onChange={(e) => setSelectedModel(models.find(m => m.id === e.target.value) || models[0])}
+              className="appearance-none bg-white px-4 py-2 pr-8 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+              aria-label="Select model"
+              title="Select model"
+            >
+              {models.map(model => (
+                <option key={model.id} value={model.id}>
+                  {model.name}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border-2 border-red-200 text-red-600 px-4 py-3 rounded-lg shadow-sm mt-4">
+          <div className="flex items-center space-x-2">
+            <svg className="h-5 w-5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+              <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-1 gap-4 mt-4 min-h-0">
+        <div className="bg-white rounded-lg p-4 border-3 border-indigo-300 shadow-sm flex flex-col w-1/3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <span className="material-icons-outlined text-blue-600">edit_note</span>
+              <p className="text-sm font-medium text-gray-700">System Prompt:</p>
+            </div>
+            <button 
+              onClick={resetPrompt}
+              className="text-xs text-blue-600 hover:text-blue-700 transition-colors hover:bg-blue-50 px-2 py-1 rounded"
+            >
+              Reset to Default
+            </button>
+          </div>
+          <div className="flex-1">
+            <textarea
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              className="instruction-template w-full h-full p-3 rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-colors bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 font-medium resize-none shadow-inner"
+              placeholder="Enter system prompt..."
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border-3 border-blue-300 overflow-hidden flex-1 flex flex-col">
+          <div className="border-b-2 border-blue-200 p-4 bg-gray-50 flex justify-between items-center">
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <span className="material-icons-outlined text-blue-600">chat</span>
+              <span>Chat History</span>
+            </div>
+            <button 
+              onClick={() => setMessages([])}
+              className="text-xs text-blue-600 hover:text-blue-700 transition-colors hover:bg-blue-50 px-2 py-1 rounded"
+              title="Clear chat history"
+            >
+              Clear Chat
+            </button>
+          </div>
+          
+          <div 
+            ref={chatContainerRef}
+            className="p-4 space-y-4 flex-1 overflow-y-auto scroll-smooth"
+          >
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`group relative p-4 rounded-lg max-w-[80%] border-3 ${
+                    msg.role === 'user' 
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400 user-message' 
+                      : msg.role === 'system'
+                      ? 'bg-gray-100 text-gray-700 border-gray-300'
+                      : 'bg-white text-gray-800 border-blue-300 hover:border-blue-400 shadow-md assistant-message'
+                  }`}
+                >
+                  {msg.role !== 'system' && (
+                    <button
+                      onClick={() => copyToClipboard(msg.content)}
+                      className="absolute right-2 top-2 p-1 rounded-full bg-gray-700/20 text-current opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Copy message"
+                    >
+                      <span className="material-icons-outlined text-sm">content_copy</span>
+                    </button>
+                  )}
+                  {msg.role === 'assistant' ? (
+                    <MessageContent content={msg.content} />
+                  ) : (
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              </div>
+            )}
+            {/* This empty div serves as a scroll target */}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="border-t-2 border-blue-200 mt-auto">
+            <div className="p-3 bg-gray-50 border-b-2 border-blue-200">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                  className={`flex items-center px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 border-2 ${
+                    webSearchEnabled 
+                      ? 'bg-blue-50 text-blue-700 border-blue-300 hover:border-blue-400' 
+                      : 'bg-white text-gray-600 border-blue-300 hover:border-blue-400'
+                  }`}
+                >
+                  <span className="material-icons-outlined mr-2 text-sm">
+                    {webSearchEnabled ? 'search_off' : 'search'}
+                  </span>
+                  {webSearchEnabled ? 'Disable Web Search' : 'Enable Web Search'}
+                </button>
+
+                {uploadedFile && (
+                  <div className="flex items-center bg-blue-50 text-blue-700 border-2 border-blue-300 px-3 py-1 rounded-lg">
+                    <span className="material-icons-outlined mr-2 text-sm">description</span>
+                    <span className="text-sm truncate max-w-[150px]">{uploadedFile.name}</span>
+                    <button 
+                      onClick={() => {
+                        setUploadedFile(null);
+                        setFileContent(null);
+                      }}
+                      className="ml-2 text-blue-700 hover:text-blue-900"
+                    >
+                      <span className="material-icons-outlined text-sm">close</span>
+                    </button>
+                  </div>
+                )}
+
+                {isProcessingFile && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="animate-spin h-4 w-4 border-b-2 border-blue-600 rounded-full mr-2"></div>
+                    <span>Processing file...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="p-3 bg-gray-50">
+              <form onSubmit={handleSubmit} className="flex gap-2">
+                <input 
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  accept=".txt,.pdf,.docx,.md"
+                  className="hidden"
+                  disabled={isLoading || isProcessingFile}
+                />
+                
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-gray-600 hover:bg-gray-100 border-2 border-blue-200 rounded-lg flex items-center justify-center transition-colors"
+                  title="Upload document"
+                  disabled={isLoading || isProcessingFile}
+                >
+                  <span className="material-icons-outlined">attach_file</span>
+                </button>
+                
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type your message here..."
+                  className="flex-1 p-2 rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-inner"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || (input.trim() === '' && !fileContent)}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border-2 border-blue-600"
+                >
+                  Send
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
