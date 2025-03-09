@@ -323,6 +323,19 @@ async function queryPricingWithStreamingResponse(prompt: string): Promise<Readab
           try {
             console.log('Attempting fallback to primary client');
             
+            // Define chatMessages before using it in the fallback logic
+            const chatMessages: ChatCompletionMessageParam[] = [
+              {
+                role: "system",
+                content: agentPrompt
+              },
+              {
+                role: "user",
+                content: `Price Context: ${JSON.stringify(priceData.Items.slice(0, 50))}`
+              },
+              { role: "user", content: prompt }
+            ];
+
             // Use the primary client as fallback with non-streaming response
             const fallbackResponse = await client.chat.completions.create({
               messages: chatMessages,
