@@ -34,15 +34,17 @@ export default function Sidebar({ isExpanded, toggleSidebar }: SidebarProps) {
             {isExpanded && <span className="ml-2">Home</span>}
           </Link>
           
+          <Link href="/instruct-agent" className="flex items-center py-3 px-2 rounded-md hover:bg-white/10 w-full">
+            <span className="material-icons-outlined">chat</span>
+            {isExpanded && <span className="ml-2">Instruct Agent</span>}
+          </Link>
+
           <Link href="/function-agent" className="flex items-center py-3 px-2 rounded-md hover:bg-white/10 w-full">
             <span className="material-icons-outlined">functions</span>
             {isExpanded && <span className="ml-2">Function Agent</span>}
           </Link>
           
-          <Link href="/instruct-agent" className="flex items-center py-3 px-2 rounded-md hover:bg-white/10 w-full">
-            <span className="material-icons-outlined">chat</span>
-            {isExpanded && <span className="ml-2">Instruct Agent</span>}
-          </Link>
+
         </div>
       </div>
     </div>
