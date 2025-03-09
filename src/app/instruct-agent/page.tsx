@@ -5,7 +5,8 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import remarkGfm from 'remark-gfm';
-import { ChatMessage } from '@/lib/types';
+// At the top of the file with other imports
+import { ChatMessage, ChatRole } from '@/lib/types';
 import { tools, models } from '@/lib/instruct-agent/tools-config';
 import { extractTextFromFile } from '@/lib/instruct-agent/file-parser';
 
@@ -70,8 +71,8 @@ export default function InstructAgentPage() {
       const text = await extractTextFromFile(file);
       setFileContent(text);
       
-      const fileMessage = { 
-        role: 'assistant', 
+      const fileMessage: ChatMessage = {
+        role: "assistant" as ChatRole,
         content: `Processed file: ${file.name}\nSize: ${(file.size / 1024).toFixed(2)} KB\nType: ${file.type}`
       };
       setMessages(prev => [...prev, fileMessage]);
