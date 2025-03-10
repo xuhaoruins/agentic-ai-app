@@ -21,7 +21,7 @@ export default function RootLayout({
       <body className="bg-gray-50 min-h-screen">
         <div className="flex min-h-screen">
           <SidebarWrapper />
-          <main className="flex-1 ml-16 md:ml-64 p-4">
+          <main className="flex-1 ml-16 md:ml-64 p-4 transition-all duration-300 ease-in-out overflow-auto">
             {children}
           </main>
         </div>
