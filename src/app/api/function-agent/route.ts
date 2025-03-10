@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat';
-import { fetchAzurePrices } from '@/lib/function-agent/function-tools';
+import { fetchAzurePrices, WebSearch } from '@/lib/function-agent/function-tools';
 import { PricingItem } from '@/lib/function-agent/function-agent-types';
 import { availableTools } from '@/lib/function-agent/tools-schema';
 import { azurePriceAnalysisPrompt } from '@/lib/function-agent/azure-price-context';
@@ -301,6 +301,7 @@ async function handleFirstCompletion(
     console.log(`Starting execution of function: ${functionName}`);
     
     switch (functionName) {
+      // Case for Azure price query function
       case 'azure_price_query': {
         console.log(`Executing azure_price_query with query: ${args.query}`);
         
@@ -319,16 +320,43 @@ async function handleFirstCompletion(
           role: "function",
           name: functionCall.name,
           content: JSON.stringify({
-            items: functionResult.items.slice(0, 50), // Limit to 50 items to avoid token limits
+            items: functionResult.items.slice(0, 100), // Limit to 50 items to avoid token limits
             filter: functionResult.filter,
             totalCount: functionResult.items.length
           })
         }]);
-        
+
         // Also add the Azure price analysis prompt to guide the model
         appendToConversationContext(sessionId, [{
           role: "system",
           content: azurePriceAnalysisPrompt
+        }]);
+
+        break;
+
+      }
+
+      // case for web search function
+      case 'web_search': {
+        console.log(`Executing web_search with query: ${args.query}`);
+
+        // Use the imported WebSearch function
+        const searchResults = await WebSearch(args.query);
+        console.log(`Fetched ${searchResults.Items.length} search results`);
+        functionResult = {
+          items: searchResults.Items,
+          filter: args.query,
+          success: true
+        };
+        // Add function result to conversation context
+        appendToConversationContext(sessionId, [{
+          role: "function",
+          name: functionCall.name,
+          content: JSON.stringify({
+            items: functionResult.items.slice(0, 50), // Limit to 50 items to avoid token limits
+            filter: functionResult.filter,
+            totalCount: functionResult.items.length
+          })
         }]);
         
         break;

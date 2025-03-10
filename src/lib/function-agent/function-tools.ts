@@ -2,6 +2,8 @@
 // add tool functions here when add new tool
 
 import { PricingItem } from './function-agent-types';
+// Import the Tavily client
+import { tavily } from "@tavily/core";
 
 // azure price api fetch function tool
 export async function fetchAzurePrices(filter: string) {
@@ -58,4 +60,73 @@ export async function fetchAzurePrices(filter: string) {
       throw error; // Re-throw if we have no items at all
     }
   }
+
+// TAVILY web search function tool - simplified with official SDK
+export async function WebSearch(query: string) {
+    console.log('Fetching web search results for query:', query);
+    const apiKey = process.env.TAVILY_API_KEY;
+    
+    if (!apiKey) {
+        console.error('TAVILY_API_KEY is not set in environment variables');
+        return { 
+            Items: generateMockSearchResults(query),
+            filter: query 
+        };
+    }
+    
+    try {
+        // Use the official Tavily SDK
+        const client = tavily({ apiKey });
+        const searchResponse = await client.search(query);
+        
+        console.log(`Web search results count: ${searchResponse?.results?.length || 0}`);
+        
+        // If we have results, format and return them
+        if (searchResponse?.results && searchResponse.results.length > 0) {
+            return {
+                Items: searchResponse.results,
+                filter: query
+            };
+        }
+        
+        // Fallback when no results are found
+        console.log('No search results found, providing fallback response');
+        return {
+            Items: generateMockSearchResults(query),
+            filter: query
+        };
+    } catch (error) {
+        console.error('Error in web search:', error);
+        return { 
+            Items: generateMockSearchResults(query),
+            filter: query 
+        };
+    }
+}
+
+// Helper function to generate mock search results when API fails
+function generateMockSearchResults(query: string) {
+    // Clean up query
+    const cleanQuery = query.trim();
+    
+    // Check for Chinese characters in query
+    const hasChinese = /[\u3400-\u9FBF]/.test(cleanQuery);
+    
+    if (hasChinese) {
+        return [{
+            title: `关于 "${cleanQuery}" 的搜索结果`,
+            content: `您搜索的是 "${cleanQuery}"。由于搜索API暂时不可用，我们无法提供实时网络搜索结果。但我可以尝试回答您的问题。`,
+            url: 'https://www.google.com/search?q=' + encodeURIComponent(cleanQuery),
+            snippet: '这是一个模拟的搜索结果。实际搜索API目前无法连接。我们将尽快修复此问题。'
+        }];
+    }
+    
+    return [{
+        title: `Search results for: "${cleanQuery}"`,
+        content: `You searched for "${cleanQuery}". The search API is currently unavailable, but I can still try to answer your question based on my knowledge.`,
+        url: 'https://www.google.com/search?q=' + encodeURIComponent(cleanQuery),
+        snippet: 'This is a simulated search result. The actual search API is currently unavailable. We\'re working to fix this issue.'
+    }];
+}
+
 

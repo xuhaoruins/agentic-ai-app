@@ -9,6 +9,7 @@ import { azureVmSize, azureRegions } from './azure-price-context';
  * Available tools for the function agent
  */
 export const availableTools: Tool[] = [
+  //azure price query function call tools definition
   {
     id: 'azure_price_query',
     name: 'Azure Price Query',
@@ -28,5 +29,26 @@ export const availableTools: Tool[] = [
       }
     },
     enabled: true
-  }
+  },
+  // TAVILY web search function call definition
+  {
+    id: 'web_search',
+    name: 'Web Search',
+    description: 'Search content from internet by using the web search API',
+    functionDefinition: {
+      name: "web_search",
+      description: "use internet web search to search content",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "query string to search, e.g.: 'What is the price of Standard_D2_v3 in eastus?'"
+          }
+        },
+        required: ["query"]
+      }
+    },
+    enabled: true
+  },
 ];
