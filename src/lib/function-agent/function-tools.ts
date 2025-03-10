@@ -144,6 +144,7 @@ function convertToCompatibleFormat(searchResults: any[]): PricingItem[] {
             productName: "WebSearch",
             skuName: "SearchResult",
             serviceFamily: "AI",
+            type: "WebSearch", // Add the missing required 'type' property
             
             // Preserve original search result data
             meterName: result.snippet || result.content || "Search result",
