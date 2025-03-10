@@ -69,7 +69,7 @@ export async function WebSearch(query: string) {
     if (!apiKey) {
         console.error('TAVILY_API_KEY is not set in environment variables');
         return { 
-            Items: generateMockSearchResults(query),
+            Items: convertToCompatibleFormat(generateMockSearchResults(query)),
             filter: query 
         };
     }
@@ -84,7 +84,7 @@ export async function WebSearch(query: string) {
         // If we have results, format and return them
         if (searchResponse?.results && searchResponse.results.length > 0) {
             return {
-                Items: searchResponse.results,
+                Items: convertToCompatibleFormat(searchResponse.results),
                 filter: query
             };
         }
@@ -92,13 +92,13 @@ export async function WebSearch(query: string) {
         // Fallback when no results are found
         console.log('No search results found, providing fallback response');
         return {
-            Items: generateMockSearchResults(query),
+            Items: convertToCompatibleFormat(generateMockSearchResults(query)),
             filter: query
         };
     } catch (error) {
         console.error('Error in web search:', error);
         return { 
-            Items: generateMockSearchResults(query),
+            Items: convertToCompatibleFormat(generateMockSearchResults(query)),
             filter: query 
         };
     }
@@ -127,6 +127,33 @@ function generateMockSearchResults(query: string) {
         url: 'https://www.google.com/search?q=' + encodeURIComponent(cleanQuery),
         snippet: 'This is a simulated search result. The actual search API is currently unavailable. We\'re working to fix this issue.'
     }];
+}
+
+// Helper function to convert search results to PricingItem format
+function convertToCompatibleFormat(searchResults: any[]): PricingItem[] {
+    return searchResults.map(result => {
+        return {
+            // Required PricingItem fields
+            armSkuName: result.title || "Search Result",
+            retailPrice: 0,
+            unitOfMeasure: "N/A",
+            armRegionName: "Global",
+            productName: "WebSearch",
+            skuName: "SearchResult",
+            serviceFamily: "AI",
+            
+            // Preserve original search result data
+            meterName: result.snippet || result.content || "Search result",
+            serviceId: "WebSearch",
+            serviceName: "WebSearch",
+            
+            // Add search result specific fields as custom properties
+            title: result.title || "",
+            content: result.content || result.snippet || "",
+            url: result.url || "",
+            snippet: result.snippet || result.content || "",
+        } as PricingItem;
+    });
 }
 
 
