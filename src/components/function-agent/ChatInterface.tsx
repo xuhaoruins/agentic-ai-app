@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { PricingItem, ToolSelection } from '@/lib/function-agent/function-agent-types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -11,9 +11,11 @@ type Message = {
   id?: string; // Add unique identifier for messages
 };
 
+// Update ResultsData type to include resultType
 type ResultsData = {
-  items: PricingItem[];
+  items: any[]; // Generic item type to accommodate different result types
   filter: string;
+  resultType?: string;
   aiResponse?: string;
 };
 
@@ -177,20 +179,17 @@ export default function ChatInterface({ onResults, selectedTools }: ChatInterfac
               // 处理不同类型的消息
               switch(data.type) {
                 case 'price_data':
-                  // 收到价格数据，先显示给用户
+                case 'web_search_data':
+                  // Received results data, show to user
+                  const resultType = data.data.resultType || (data.type === 'price_data' ? 'price' : 'web_search');
                   priceDataReceived = true;
+                  console.log(`Received ${resultType} data:`, data.data.Items.length, "items");
                   onResults({
                     items: data.data.Items,
                     filter: data.data.filter,
-                    aiResponse: undefined // 先不设置AI响应，因为还在流式处理中
+                    resultType: resultType,
+                    aiResponse: undefined // Will be set when AI response is complete
                   });
-                  
-                  // 保持原始的加载状态消息，不显示处理记录数量
-                  // setMessages(prev => prev.map(msg => 
-                  //   msg.id === loadingMsgId 
-                  //     ? { ...msg, content: `Processing ${data.data.Items.length} price records...` } 
-                  //     : msg
-                  // ));
                   break;
                   
                 case 'ai_response_chunk':
@@ -219,6 +218,7 @@ export default function ChatInterface({ onResults, selectedTools }: ChatInterfac
                     onResults({
                       items: data.data.Items,
                       filter: data.data.filter,
+                      resultType: data.data.resultType || (data.type === 'price_data' ? 'price' : 'web_search'),
                       aiResponse: fullAiResponse || data.data.content
                     });
                   }
@@ -239,6 +239,7 @@ export default function ChatInterface({ onResults, selectedTools }: ChatInterfac
                   onResults({
                     items: [],
                     filter: '',
+                    resultType: '',
                     aiResponse: data.data.content
                   });
                   break;
@@ -289,6 +290,41 @@ export default function ChatInterface({ onResults, selectedTools }: ChatInterfac
       setLoading(false);
     }
   };
+
+  // Define example queries by tool type
+  const exampleQueries = useMemo(() => ({
+    azure_price_query: [
+      { text: "D8s v4 in East US", query: "What's the price of Standard D8s v4 in East US?" },
+      { text: "GPU VMs in West US 2", query: "Compare prices of GPU VMs in West US 2" },
+    ],
+    web_search: [
+      { text: "Azure AI news", query: "Search for latest Microsoft Azure AI announcements" },
+      { text: "Confidential Computing", query: "Find information about Azure Confidential Computing" },
+    ]
+  }), []);
+  
+  // Determine which queries to show based on selected tools
+  const visibleQueries = useMemo(() => {
+    const selectedToolIds = selectedTools.toolIds || [];
+    const hasAzurePriceTool = selectedToolIds.includes('azure_price_query');
+    const hasWebSearchTool = selectedToolIds.includes('web_search');
+    
+    let queries = [];
+    if (hasAzurePriceTool) {
+      queries.push(...exampleQueries.azure_price_query);
+    }
+    if (hasWebSearchTool) {
+      queries.push(...exampleQueries.web_search);
+    }
+    
+    // If no tools selected or queries empty, show a default message
+    if (queries.length === 0) {
+      return [{ text: "Select a tool first", query: "Please select a tool to continue" }];
+    }
+    
+    // Limit to max 4 examples
+    return queries.slice(0, 4);
+  }, [selectedTools, exampleQueries]);
 
   return (
     <div ref={chatContainerRef} className="flex flex-col bg-white rounded-xl shadow-lg overflow-hidden h-full">
@@ -363,7 +399,7 @@ export default function ChatInterface({ onResults, selectedTools }: ChatInterfac
                   msg.role === 'user' ? 'text-right text-gray-600' : 'text-gray-500'
                 }`}
               >
-                {msg.role === 'user' ? 'You' : 'Azure Price Agent'}
+                {msg.role === 'user' ? 'You' : 'Function Agent'}
               </div>
               
               <div
@@ -399,7 +435,7 @@ export default function ChatInterface({ onResults, selectedTools }: ChatInterfac
               </div>
               
               <div className="text-xs mt-1 px-1 text-gray-500">
-                Azure Price Agent
+                Function Agent
               </div>
               
               <div 
@@ -425,12 +461,12 @@ export default function ChatInterface({ onResults, selectedTools }: ChatInterfac
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Enter your pricing query..."
+              placeholder="Ask a question or search for information..."
               className="w-full p-3 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all shadow-sm text-sm md:text-base"
               disabled={loading}
               spellCheck={false}
               autoFocus
-              aria-label="Price query input"
+              aria-label="Query input"
             />
             {input.trim() && !loading && (
               <button 
@@ -465,24 +501,19 @@ export default function ChatInterface({ onResults, selectedTools }: ChatInterfac
           </button>
         </div>
         
-        {/* Example queries */}
+        {/* Dynamic example queries based on selected tools */}
         <div className="mt-2 flex flex-wrap gap-2" role="list" aria-label="Example queries">
-          <button 
-            type="button" 
-            onClick={() => setInput("What's the price of Standard D8s v4 in East US?")}
-            disabled={loading}
-            className="text-xs bg-white py-1 px-2 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            D8s v4 in East US
-          </button>
-          <button 
-            type="button" 
-            onClick={() => setInput("Compare prices of GPU VMs in West US 2")}
-            disabled={loading}
-            className="text-xs bg-white py-1 px-2 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            GPU VMs in West US 2
-          </button>
+          {visibleQueries.map((queryItem, index) => (
+            <button 
+              key={index}
+              type="button" 
+              onClick={() => setInput(queryItem.query)}
+              disabled={loading}
+              className="text-xs bg-white py-1 px-2 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              {queryItem.text}
+            </button>
+          ))}
         </div>
       </form>
     </div>

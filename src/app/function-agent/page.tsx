@@ -3,13 +3,22 @@
 import { useState, useEffect } from 'react';
 import { PricingItem, ToolSelection } from '@/lib/function-agent/function-agent-types';
 import ChatInterface from '@/components/function-agent/ChatInterface';
-import PriceResults from '@/components/function-agent/PriceResults';
+import Results from '@/components/function-agent/Results';
 import ToolsBox from '@/components/function-agent/ToolsBox';
 import { availableTools } from '@/lib/function-agent/tools-schema';
 import Image from 'next/image';
 
+// Define a type that can handle different result types
+type ResultItem = PricingItem | {
+  title: string;
+  url: string;
+  snippet: string;
+  datePublished?: string;
+};
+
 export default function FunctionAgentPage() {
-  const [results, setResults] = useState<PricingItem[]>([]);
+  const [results, setResults] = useState<ResultItem[]>([]);
+  const [resultType, setResultType] = useState<string>('price');
   const [filter, setFilter] = useState('');
   const [chatHeight, setChatHeight] = useState('450px');
   const [selectedTools, setSelectedTools] = useState<ToolSelection>({
@@ -24,7 +33,7 @@ export default function FunctionAgentPage() {
       const availableHeight = vh - headerHeight - bottomMargin;
       
       const minHeight = 320;
-      const maxHeight = 800; // 增加最大高度
+      const maxHeight = 800; 
       const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight * 0.85));
       
       setChatHeight(`${calculatedHeight}px`);
@@ -35,10 +44,17 @@ export default function FunctionAgentPage() {
     return () => window.removeEventListener('resize', updateChatHeight);
   }, []);
 
-  const handleResults = ({items, filter, aiResponse}: {items: PricingItem[], filter: string, aiResponse?: string}) => {
+  const handleResults = ({items, filter, resultType = 'price', aiResponse}: {
+    items: ResultItem[], 
+    filter: string, 
+    resultType?: string,
+    aiResponse?: string
+  }) => {
     setResults(items);
     setFilter(filter);
-    console.log('OData Query Filter:', filter);
+    setResultType(resultType);
+    // Log filter to console instead of displaying it
+    console.log(`Query Filter for ${resultType}:`, filter);
   };
 
   const handleToolSelectionChange = (selection: ToolSelection) => {
@@ -73,7 +89,7 @@ export default function FunctionAgentPage() {
                   </div>
                 </div>
                 <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-700">
-                  Funcation Agent
+                  Function Agent
                 </h1>
               </div>
               
@@ -102,7 +118,7 @@ export default function FunctionAgentPage() {
             </div>
 
             <div className="flex flex-row gap-4">
-              {/* Chat Interface - now takes less width */}
+              {/* Chat Interface */}
               <div 
                 style={{ height: chatHeight }} 
                 className="w-3/4 rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all"
@@ -110,7 +126,7 @@ export default function FunctionAgentPage() {
                 <ChatInterface onResults={handleResults} selectedTools={selectedTools} />
               </div>
               
-              {/* Tools Box - new component */}
+              {/* Tools Box */}
               <div 
                 style={{ height: chatHeight }}
                 className="w-1/4 rounded-xl overflow-hidden transition-all"
@@ -121,19 +137,10 @@ export default function FunctionAgentPage() {
           </div>
         </div>
         
-        {filter && (
-          <div className="mb-4">
-            <QueryFilter totalCount={results.length} filter={filter} onClear={handleClearResults} />
-          </div>
-        )}
-        
         <div id="results" className={`transition-opacity duration-300 ${results.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
-          {results.length > 0 && <PriceResults items={results} />}
+          {results.length > 0 && <Results items={results} resultType={resultType} />}
         </div>
       </div>
     </main>
   );
 }
-
-// Import the QueryFilter component to display the filter
-import QueryFilter from '@/components/function-agent/QueryFilter';

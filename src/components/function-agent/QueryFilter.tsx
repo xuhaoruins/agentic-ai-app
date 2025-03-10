@@ -6,9 +6,10 @@ interface QueryFilterProps {
   totalCount: number;
   filter: string;
   onClear: () => void;
+  resultType?: string;
 }
 
-export default function QueryFilter({ totalCount, filter, onClear }: QueryFilterProps) {
+export default function QueryFilter({ totalCount, filter, onClear, resultType = 'price' }: QueryFilterProps) {
   const formatFilter = (filter: string) => {
     return filter.replace(/'/g, '"')
                 .replace(/contains\((.*?)\)/g, (match) => `contains${match.slice(8, -1)}`)
@@ -20,14 +21,16 @@ export default function QueryFilter({ totalCount, filter, onClear }: QueryFilter
     <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-700">Generated Query:</span>
+          <span className="text-sm font-medium text-gray-700">
+            {resultType === 'web_search' ? 'Search Query:' : 'Generated Query:'}
+          </span>
           <code className="px-2 py-1 bg-gray-100 rounded text-sm font-mono">
             {formatFilter(filter)}
           </code>
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-sm text-gray-600">
-            Found: <strong>{totalCount}</strong> results
+            Found: <strong>{totalCount}</strong> {resultType === 'web_search' ? 'results' : 'records'}
           </span>
           <button
             onClick={onClear}

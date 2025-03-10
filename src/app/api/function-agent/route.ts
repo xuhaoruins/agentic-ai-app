@@ -404,18 +404,19 @@ async function handleFirstCompletion(
 
   // Step 2.1.3: Send function results to client for immediate display
   if (functionResult && functionResult.items && functionResult.items.length > 0) {
-    console.log(`Sending price data to client: ${functionResult.items.length} items`);
-    const priceData = {
-      type: 'price_data',
+    console.log(`Sending ${functionName} data to client: ${functionResult.items.length} items`);
+    const resultData = {
+      type: functionName === 'azure_price_query' ? 'price_data' : 'web_search_data',
       data: {
         Items: functionResult.items,
         totalCount: functionResult.items.length,
-        filter: functionResult.filter
+        filter: functionResult.filter,
+        resultType: functionName === 'azure_price_query' ? 'price' : 'web_search'
       }
     };
-    controller.enqueue(encoder.encode(`data: ${JSON.stringify(priceData)}\n\n`));
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(resultData)}\n\n`));
   } else {
-    console.log('No price data items to send to client');
+    console.log(`No ${functionName} items to send to client`);
   }
 
   // Step 2.1.4: Perform second completion with updated conversation context
@@ -486,7 +487,11 @@ async function performSecondCompletion(
       data: { 
         content: aiResponseText,
         Items: items,
-        filter: filter
+        filter: filter,
+        // Set resultType based on the function name stored in session context
+        resultType: fullContext.some(msg => msg.role === 'assistant' && msg.function_call?.name === 'web_search')
+          ? 'web_search'
+          : 'price'
       }
     };
 
