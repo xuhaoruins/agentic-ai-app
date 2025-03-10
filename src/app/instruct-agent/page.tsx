@@ -321,7 +321,7 @@ export default function InstructAgentPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-screen flex flex-col py-4 px-4">
+    <div className="max-w-4xl mx-auto h-screen flex flex-col py-4 px-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* 注入自定义的选择样式 - 改为直接使用模板字符串 */}
       <style jsx global>{`
         .instruction-template::selection {
@@ -371,11 +371,13 @@ export default function InstructAgentPage() {
         }
       `}</style>
 
-      <div className="flex justify-between items-center bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+      <div className="flex justify-between items-center bg-white p-4 rounded-lg border-2 border-gray-200 shadow-lg mb-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 z-0"></div>
+        
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-700 bg-clip-text text-transparent relative z-10">
           Instruct Agent
         </h1>
-        <div className="flex gap-4">
+        <div className="flex gap-4 relative z-10">
           <div className="relative border-2 border-gray-200 hover:border-blue-400 transition-colors rounded-lg shadow-sm">
             <select
               value={selectedTool.id}
@@ -432,8 +434,9 @@ export default function InstructAgentPage() {
       )}
 
       <div className="flex flex-1 gap-4 mt-4 min-h-0">
-        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 shadow-sm flex flex-col w-1/3">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 shadow-lg flex flex-col w-1/3 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 z-0"></div>
+          <div className="flex items-center justify-between mb-3 relative z-10">
             <div className="flex items-center space-x-2">
               <span className="material-icons-outlined text-blue-600">edit_note</span>
               <p className="text-sm font-medium text-gray-700">System Prompt:</p>
@@ -445,7 +448,7 @@ export default function InstructAgentPage() {
               Reset to Default
             </button>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 relative z-10">
             <textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
@@ -455,8 +458,9 @@ export default function InstructAgentPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border-2 border-gray-200 overflow-hidden flex-1 flex flex-col">
-          <div className="border-b border-gray-200 p-4 bg-gray-50 flex justify-between items-center">
+        <div className="bg-white rounded-lg shadow-lg border-2 border-gray-200 overflow-hidden flex-1 flex flex-col relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 z-0"></div>
+          <div className="border-b border-gray-200 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 flex justify-between items-center relative z-10">
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <span className="material-icons-outlined text-blue-600">chat</span>
               <span>Chat History</span>
@@ -472,7 +476,7 @@ export default function InstructAgentPage() {
           
           <div 
             ref={chatContainerRef}
-            className="p-4 space-y-4 flex-1 overflow-y-auto scroll-smooth"
+            className="p-4 space-y-4 flex-1 overflow-y-auto scroll-smooth relative z-10"
           >
             {messages.map((msg, idx) => (
               <div
@@ -482,10 +486,10 @@ export default function InstructAgentPage() {
                 <div
                   className={`group relative p-4 rounded-lg max-w-[80%] ${
                     msg.role === 'user' 
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-none user-message' 
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-none user-message shadow-md' 
                       : msg.role === 'system'
                       ? 'bg-gray-100 text-gray-700 border border-gray-200'
-                      : 'bg-white text-gray-800 border border-gray-200 hover:border-blue-300 shadow-md assistant-message'
+                      : 'bg-gradient-to-br from-indigo-50 to-blue-100 text-gray-800 border border-blue-300 hover:border-blue-400 shadow-md assistant-message'
                   }`}
                 >
                   {msg.role !== 'system' && (
@@ -507,15 +511,15 @@ export default function InstructAgentPage() {
             ))}
             {isLoading && (
               <div className="flex justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             )}
             {/* This empty div serves as a scroll target */}
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-gray-200 mt-auto">
-            <div className="p-3 bg-gray-50 border-b border-gray-200">
+          <div className="border-t border-gray-200 mt-auto relative z-10">
+            <div className="p-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -556,7 +560,7 @@ export default function InstructAgentPage() {
                 )}
               </div>
             </div>
-            <div className="p-3 bg-gray-50">
+            <div className="p-3 bg-gradient-to-r from-gray-50 to-gray-100">
               <form onSubmit={handleSubmit} className="flex gap-2">
                 <input 
                   type="file"
