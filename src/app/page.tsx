@@ -8,7 +8,7 @@ export default function Home() {
       <div className="max-w-6xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-700 sm:text-6xl">
-            Azure AI Agents
+            Agentic AI Apps
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
             Choose an AI agent to help you with different Azure-related tasks
