@@ -2,13 +2,45 @@ import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat';
-import { azureRegions } from '@/lib/function-agent/azure-regions';
-import { azureVmSize } from '@/lib/function-agent/azurevmsize';
-import { PricingItem } from '@/lib/function-agent/price-api-types';
-import { agentPrompt } from '@/lib/function-agent/agentPrompt';
+import { fetchAzurePrices } from '@/lib/function-agent/function-tools';
+import { PricingItem } from '@/lib/function-agent/function-agent-types';
+import { availableTools } from '@/lib/function-agent/tools-schema';
+import { azurePriceAnalysisPrompt } from '@/lib/function-agent/azure-price-context';
 
 export const runtime = 'edge';
 export const maxDuration = 60;
+
+// Global conversation context storage, keyed by session ID
+const conversationContexts = new Map<string, ChatCompletionMessageParam[]>();
+
+// Function to get or create conversation context
+function getConversationContext(sessionId: string, reset: boolean = false): ChatCompletionMessageParam[] {
+  if (reset || !conversationContexts.has(sessionId)) {
+    // Initialize with system prompt
+    const initialContext: ChatCompletionMessageParam[] = [
+      {
+        role: "system",
+        content: `你是一名经验丰富的助手，你可以熟练地根据用户的询问判断出使用哪个函数或工具。`
+      }
+    ];
+    conversationContexts.set(sessionId, initialContext);
+    return initialContext;
+  }
+  return conversationContexts.get(sessionId)!;
+}
+
+// Function to append messages to conversation context
+function appendToConversationContext(
+  sessionId: string, 
+  messages: ChatCompletionMessageParam[]
+): void {
+  if (!conversationContexts.has(sessionId)) {
+    getConversationContext(sessionId);
+  }
+  
+  const currentContext = conversationContexts.get(sessionId)!;
+  conversationContexts.set(sessionId, [...currentContext, ...messages]);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,11 +57,19 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Prompt is required' }, { status: 400 });
     }
     
-    const { prompt } = body;
+    const { prompt, selectedTools, sessionId = 'default', resetContext } = body;
     console.log('Processing prompt:', prompt.substring(0, 50) + '...');
+    console.log('Selected tools:', selectedTools?.toolIds || 'none');
+    console.log('Session ID:', sessionId);
+    
+    // Handle context reset if requested
+    if (resetContext) {
+      console.log(`Resetting context for session ${sessionId}`);
+      getConversationContext(sessionId, true);
+    }
     
     // Use streaming response for better user experience
-    const stream = await queryPricingWithStreamingResponse(prompt);
+    const stream = await queryPricingWithStreamingResponse(prompt, selectedTools, sessionId);
     
     return new Response(stream, {
       headers: {
@@ -56,7 +96,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function queryPricingWithStreamingResponse(prompt: string): Promise<ReadableStream> {
+async function queryPricingWithStreamingResponse(
+  prompt: string, 
+  selectedTools?: ToolSelection, 
+  sessionId: string = 'default'
+): Promise<ReadableStream> {
   // Check environment variables with detailed logging
   const missingEnvVars = [];
   
@@ -87,7 +131,7 @@ async function queryPricingWithStreamingResponse(prompt: string): Promise<Readab
     // Fixed second client initialization for Azure OpenAI
     azureClient = new AzureOpenAI({
       apiKey: process.env.SECOND_OPENAI_API_KEY,
-      endpoint: process.env.SECOND_AZURE_OPENAI_ENDPOINT, // Use endpoint instead of baseURL
+      endpoint: process.env.SECOND_AZURE_OPENAI_ENDPOINT,
       apiVersion: '2024-10-21',
     });
     
@@ -99,286 +143,33 @@ async function queryPricingWithStreamingResponse(prompt: string): Promise<Readab
 
   const encoder = new TextEncoder();
   
-  const functions = [
-    {
-        name: "odata_query",
-        description: "根据传入的 OData 查询条件从 Azure 零售价格 API 中获取数据，并返回合并后的 JSON 记录列表，仅使用 armRegionName and armSkuName 进行模糊查询.",
-        parameters: {
-            type: "object",
-            properties: {
-                query: {
-                    type: "string",
-                    description: "OData 查询条件，使用模糊查询的方式，例如：armRegionName eq 'southcentralus' and contains(armSkuName, 'Redis')"
-                }
-            },
-            required: ["query"]
-        }
-    }
-];
+  // Determine if any tools are explicitly selected by the user
+  const toolIds = selectedTools?.toolIds || [];
+  const hasSelectedTools = toolIds.length > 0;
+  
+  // Only include tools that are explicitly selected
+  const enabledTools = hasSelectedTools 
+    ? availableTools.filter(tool => toolIds.includes(tool.id))
+    : [];
+  
+  // Only use functions when tools are explicitly selected
+  const functions = enabledTools.map(tool => tool.functionDefinition);
+  const shouldUseFunctions = functions.length > 0;
+  
+  console.log(`Tool selection status: ${hasSelectedTools ? 'Tools selected' : 'No tools selected'}`);
+  console.log(`Function calling ${shouldUseFunctions ? 'enabled with ' + functions.length + ' functions' : 'disabled'}`);
 
   // Create stream transformer
-  const stream = new ReadableStream({
+  return new ReadableStream({
     async start(controller) {
       try {
         console.log('Starting stream processing');
         
-        // Step 1: Generate query filter
-        const functionMessages: ChatCompletionMessageParam[] = [
-          {
-              role: "system",
-              content: `你是Azure价格查询助手，如果用户询问Azure产品价格相关问题，必须先调用odata_query，才能够回复。如果用户询问其他问题，你可以委婉地拒绝。`
-          },
-          {
-              role: "user",
-              content: `Azure region mapping: ${JSON.stringify(azureRegions)}`
-          },
-          {
-              role: "user",
-              content: `Azure virtual machine size context: ${JSON.stringify(azureVmSize)}`
-          },
-          { role: "user", content: prompt }
-      ];
-
-        console.log('Sending request to OpenAI for function calling');
+        // Add the user's prompt to conversation context
+        appendToConversationContext(sessionId, [{ role: "user", content: prompt }]);
         
-        let response;
-        try {
-          response = await client.chat.completions.create({
-            messages: functionMessages,
-            temperature: 1,
-            model: 'gpt-4o',
-            functions: functions,
-            function_call: "auto"
-          });
-          console.log('Received function call response');
-        } catch (error) {
-          console.error('Error in function call request:', error);
-          
-          // Send error message to client
-          const errorData = {
-            type: 'error',
-            data: { message: `OpenAI API error: ${error instanceof Error ? error.message : 'Unknown error'}` }
-          };
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
-          controller.close();
-          return;
-        }
-
-        const functionCall = response.choices[0]?.message?.function_call;
-        
-        // If no function call triggered, return direct response
-        if (!functionCall || functionCall.name !== "odata_query") {
-          console.log('No function call triggered, sending direct response');
-          const directResponse = response.choices[0]?.message?.content || 'No response generated';
-          
-          // Send direct response as complete message
-          const directResponseData = {
-            type: 'direct_response',
-            data: { content: directResponse }
-          };
-          
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(directResponseData)}\n\n`));
-          controller.close();
-          return;
-        }
-
-        let args;
-        let queryFilter;
-        
-        try {
-          args = JSON.parse(functionCall.arguments || "{}");
-          queryFilter = args.query;
-
-          if (!queryFilter) {
-            throw new Error('Empty query filter generated');
-          }
-          
-          console.log('Generated query filter:', queryFilter);
-        } catch (parseError) {
-          console.error('Error parsing function arguments:', parseError);
-          
-          const parseErrorData = {
-            type: 'error',
-            data: { message: `Failed to parse query filter: ${parseError instanceof Error ? parseError.message : 'Unknown error'}` }
-          };
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(parseErrorData)}\n\n`));
-          controller.close();
-          return;
-        }
-
-        // Step 2: Fetch price data with robust error handling
-        let priceData = { Items: [] as PricingItem[] };
-        
-        try {
-          console.log('Fetching price data with filter');
-          priceData = await fetchPrices(queryFilter);
-          console.log(`Fetched ${priceData.Items.length} price items`);
-          
-          // Step 3: Return price data immediately for display
-          const initialData = {
-            type: 'price_data',
-            data: {
-              Items: priceData.Items,
-              totalCount: priceData.Items.length,
-              filter: queryFilter
-            }
-          };
-
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`));
-        } catch (priceError) {
-          console.error('Error fetching price data:', priceError);
-          
-          // Send error to client but don't end stream - continue with empty data
-          const priceErrorData = {
-            type: 'price_data_error',
-            data: { 
-              message: `Price API error: ${priceError instanceof Error ? priceError.message : 'Unknown error'}`,
-              Items: [],
-              filter: queryFilter 
-            }
-          };
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(priceErrorData)}\n\n`));
-          
-          // Continue with empty price data
-          priceData = { Items: [] };
-        }
-
-        // Step 4: Start streaming chat completion
-        try {
-          console.log('Starting AI response generation');
-          
-          // Get the Azure OpenAI deployment name from env vars
-          const deploymentName = process.env.AZURE_DEPLOYMENT_NAME || 'default-deployment';
-          console.log('Using Azure OpenAI deployment:', deploymentName);
-          
-          const chatMessages: ChatCompletionMessageParam[] = [
-            {
-              role: "system",
-              content: agentPrompt
-            },
-            {
-              role: "user",
-              content: `Price Context: ${JSON.stringify(priceData.Items.slice(0, 50))}`
-            },
-            { role: "user", content: prompt }
-          ];
-
-          // Fix: Use deployment name instead of model name with AzureOpenAI client
-          const streamResponse = await azureClient.chat.completions.create({
-            messages: chatMessages,
-            temperature: 0.7,
-            model: "gpt-4o-mini", // Use the Azure deployment name here
-            stream: true
-          });
-
-          // Step 5: Stream the analysis response
-          let aiResponseText = '';
-
-          for await (const chunk of streamResponse) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-              aiResponseText += content;
-              
-              const chunkData = {
-                type: 'ai_response_chunk',
-                data: { content }
-              };
-              
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`));
-            }
-          }
-
-          console.log('Completed streaming AI response');
-
-          // Step 6: Send complete response for client storage
-          const finalData = {
-            type: 'ai_response_complete',
-            data: { 
-              content: aiResponseText,
-              Items: priceData.Items,
-              filter: queryFilter
-            }
-          };
-
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalData)}\n\n`));
-        } catch (aiError) {
-          console.error('Error generating AI response:', aiError);
-          
-          // Add more detailed error logging
-          if (aiError instanceof Error) {
-            console.error('Error details:', {
-              message: aiError.message,
-              name: aiError.name,
-              stack: aiError.stack,
-              // @ts-ignore - For capturing Azure OpenAI specific error details
-              status: aiError.status,
-              // @ts-ignore
-              headers: aiError.headers,
-              // @ts-ignore
-              error: aiError.error
-            });
-          }
-          
-          // Fallback to using the primary client if secondary fails
-          try {
-            console.log('Attempting fallback to primary client');
-            
-            // Define chatMessages before using it in the fallback logic
-            const chatMessages: ChatCompletionMessageParam[] = [
-              {
-                role: "system",
-                content: agentPrompt
-              },
-              {
-                role: "user",
-                content: `Price Context: ${JSON.stringify(priceData.Items.slice(0, 50))}`
-              },
-              { role: "user", content: prompt }
-            ];
-
-            // Use the primary client as fallback with non-streaming response
-            const fallbackResponse = await client.chat.completions.create({
-              messages: chatMessages,
-              temperature: 0.7,
-              model: process.env.MODEL_NAME || 'gpt-4o',
-              max_tokens: 1000
-            });
-            
-            const aiResponseText = fallbackResponse.choices[0]?.message?.content || 
-              'Unable to generate a detailed analysis of the pricing data.';
-              
-            // Send complete response as one chunk
-            const finalData = {
-              type: 'ai_response_complete',
-              data: { 
-                content: aiResponseText,
-                Items: priceData.Items,
-                filter: queryFilter
-              }
-            };
-            
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalData)}\n\n`));
-            
-          } catch (fallbackError) {
-            console.error('Fallback also failed:', fallbackError);
-            
-            // Send error but try to keep the price data
-            const aiErrorData = {
-              type: 'ai_response_complete',
-              data: { 
-                content: `Sorry, I encountered an error analyzing the price data: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`,
-                Items: priceData.Items,
-                filter: queryFilter
-              }
-            };
-            
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(aiErrorData)}\n\n`));
-          }
-        }
-
-        controller.close();
-        console.log('Stream processing completed');
-
+        // Step 1: First completion - determine if function calling is needed
+        await handleFirstCompletion(client, prompt, functions, azureClient, controller, encoder, sessionId, shouldUseFunctions);
       } catch (error) {
         console.error('Fatal stream error:', error);
         const errorData = {
@@ -390,90 +181,301 @@ async function queryPricingWithStreamingResponse(prompt: string): Promise<Readab
       }
     }
   });
-
-  return stream;
 }
 
-async function fetchPrices(filter: string) {
-  console.log('Fetching prices from Azure API');
-  const api_url = "https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview";
-  let allItems: PricingItem[] = [];
+// Step 1: First completion - determine if function calling is needed
+async function handleFirstCompletion(
+  client: OpenAI,
+  prompt: string,
+  functions: any[],
+  azureClient: AzureOpenAI,
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder,
+  sessionId: string = 'default',
+  shouldUseFunctions: boolean = false
+) {
+  // Get the current conversation context
+  const conversationContext = getConversationContext(sessionId);
   
-  // Make sure filter is URL encoded
-  const encodedFilter = encodeURIComponent(filter);
-  let nextPageUrl = `${api_url}&$filter=${encodedFilter}`;
-  let pageCount = 0;
-  const maxPages = 3; // Limit to 3 pages to avoid timeouts
+  console.log('Sending request to OpenAI with context length:', conversationContext.length);
+  console.log('Function calling is', shouldUseFunctions ? 'enabled' : 'disabled');
+  
+  let response;
+  try {
+    // Only include function parameters when tools are selected
+    response = await client.chat.completions.create({
+      messages: conversationContext,
+      temperature: 1,
+      model: 'gpt-4o',
+      ...(shouldUseFunctions ? {
+        functions: functions,
+        function_call: "auto"
+      } : {})
+    });
+    
+    console.log('Received completion response');
+  } catch (error) {
+    console.error('Error in function call request:', error);
+    
+    // Send error message to client
+    const errorData = {
+      type: 'error',
+      data: { message: `OpenAI API error: ${error instanceof Error ? error.message : 'Unknown error'}` }
+    };
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
+    controller.close();
+    return;
+  }
+
+  const functionCall = response.choices[0]?.message?.function_call;
+  
+  // Case: No function call or function calling disabled
+  if (!functionCall || !shouldUseFunctions) {
+    console.log('Processing direct response (no function calling)');
+    const directResponse = response.choices[0]?.message?.content || 'No response generated';
+    
+    // Add the assistant's response to conversation context
+    appendToConversationContext(sessionId, [{
+      role: "assistant",
+      content: directResponse
+    }]);
+    
+    // Send direct response as complete message
+    const directResponseData = {
+      type: 'direct_response',
+      data: { content: directResponse }
+    };
+    
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(directResponseData)}\n\n`));
+    controller.close();
+    return;
+  }
+
+  // Function calling path - only reached when shouldUseFunctions is true
+  console.log('Function call detected:', JSON.stringify(functionCall));
+  
+  const functionName = functionCall.name; // Explicitly extract the function name
+  console.log(`Processing function call: ${functionName}`);
+  
+  appendToConversationContext(sessionId, [{
+    role: "assistant",
+    content: null,
+    function_call: {
+      name: functionName,
+      arguments: functionCall.arguments || "{}"
+    }
+  }]);
+
+  // Parse function arguments
+  let args;
+  try {
+    args = JSON.parse(functionCall.arguments || "{}");
+    console.log(`Parsed function arguments for ${functionName}:`, args);
+  } catch (parseError) {
+    console.error('Error parsing function arguments:', parseError);
+    
+    const parseErrorData = {
+      type: 'error',
+      data: { message: `Failed to parse arguments: ${parseError instanceof Error ? parseError.message : 'Unknown error'}` }
+    };
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(parseErrorData)}\n\n`));
+    controller.close();
+    return;
+  }
+  
+  // Step 2.1.2: Call the appropriate tool function based on function name
+  let functionResult: { 
+    items: PricingItem[], 
+    filter: string,
+    success: boolean,
+    error?: string 
+  };
 
   try {
-    while (nextPageUrl && pageCount < maxPages) {
-      console.log(`Fetching price data page ${pageCount + 1}...`);
-      pageCount++;
-      
-      const response = await fetch(nextPageUrl, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        // Add a timeout for the fetch request
-        signal: AbortSignal.timeout(10000) // 10 seconds timeout
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          url: nextPageUrl,
-          responseText: errorText.substring(0, 500) // Log first 500 chars to see error
-        });
-        throw new Error(`Failed to fetch prices: ${response.status} ${response.statusText}`);
+    // Now we can use functionName here since it's defined in this scope
+    console.log(`Starting execution of function: ${functionName}`);
+    
+    switch (functionName) {
+      case 'azure_price_query': {
+        console.log(`Executing azure_price_query with query: ${args.query}`);
+        
+        // Use the imported fetchAzurePrices function
+        const priceData = await fetchAzurePrices(args.query);
+        console.log(`Fetched ${priceData.Items.length} price items`);
+        
+        functionResult = {
+          items: priceData.Items,
+          filter: args.query,
+          success: true
+        };
+        
+        // Add function result to conversation context
+        appendToConversationContext(sessionId, [{
+          role: "function",
+          name: functionCall.name,
+          content: JSON.stringify({
+            items: functionResult.items.slice(0, 50), // Limit to 50 items to avoid token limits
+            filter: functionResult.filter,
+            totalCount: functionResult.items.length
+          })
+        }]);
+        
+        // Also add the Azure price analysis prompt to guide the model
+        appendToConversationContext(sessionId, [{
+          role: "system",
+          content: azurePriceAnalysisPrompt
+        }]);
+        
+        break;
       }
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        console.error('Invalid content type response:', {
-          contentType,
-          responseText: responseText.substring(0, 500) // Log first 500 chars to debug
-        });
-        throw new Error(`Expected JSON but got ${contentType || 'unknown content type'}`);
+      default: {
+        console.error(`Unknown function: ${functionName}`);
+        throw new Error(`Unknown function: ${functionName}`);
       }
-
-      const data = await response.json();
-      
-      if (data.Items && Array.isArray(data.Items)) {
-        const processedItems = data.Items.map((item: Record<string, unknown>) => ({
-          armSkuName: item.armSkuName || 'Unknown',
-          retailPrice: typeof item.retailPrice === 'number' ? item.retailPrice : 0,
-          unitOfMeasure: item.unitOfMeasure || 'Unknown',
-          armRegionName: item.armRegionName || 'global',
-          meterName: item.meterName || 'Unknown',
-          productName: item.productName || 'Unknown',
-          type: item.type || 'Unknown',
-          location: item.location || null,
-          reservationTerm: item.reservationTerm || null,
-          savingsPlan: item.savingsPlan || null
-        }));
-        allItems = [...allItems, ...processedItems];
-        console.log(`Added ${processedItems.length} items from page ${pageCount}`);
-      } else {
-        console.warn('No items found in API response:', data);
-      }
-
-      // Get next page or stop
-      nextPageUrl = data.NextPageLink || '';
     }
     
-    console.log(`Fetched a total of ${allItems.length} items in ${pageCount} pages`);
-    return { Items: allItems };
+    console.log(`Successfully executed function: ${functionName}`);
   } catch (error) {
-    console.error('Error fetching prices:', error);
-    if (allItems.length > 0) {
-      // If we have some items already, return them instead of failing completely
-      console.log(`Returning ${allItems.length} items despite error`);
-      return { Items: allItems };
+    console.error(`Error executing function ${functionName}:`, error);
+    
+    // Send error but don't end stream yet
+    const functionErrorData = {
+      type: 'price_data_error',
+      data: { 
+        message: `Function execution error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        Items: [],
+        filter: '' 
+      }
+    };
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(functionErrorData)}\n\n`));
+    
+    // Continue with empty result
+    functionResult = {
+      items: [],
+      filter: args?.query || '',
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+    
+    // Add error result to conversation context
+    appendToConversationContext(sessionId, [{
+      role: "function",
+      name: functionName,
+      content: JSON.stringify({
+        error: functionResult.error,
+        success: false
+      })
+    }]);
+  }
+
+  // Step 2.1.3: Send function results to client for immediate display
+  if (functionResult && functionResult.items && functionResult.items.length > 0) {
+    console.log(`Sending price data to client: ${functionResult.items.length} items`);
+    const priceData = {
+      type: 'price_data',
+      data: {
+        Items: functionResult.items,
+        totalCount: functionResult.items.length,
+        filter: functionResult.filter
+      }
+    };
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(priceData)}\n\n`));
+  } else {
+    console.log('No price data items to send to client');
+  }
+
+  // Step 2.1.4: Perform second completion with updated conversation context
+  await performSecondCompletion(
+    prompt,
+    functionResult?.items || [],
+    functionResult?.filter || '',
+    azureClient,
+    controller,
+    encoder,
+    sessionId
+  );
+}
+
+// Perform second completion with function results and conversation context
+async function performSecondCompletion(
+  prompt: string,
+  items: PricingItem[],
+  filter: string,
+  azureClient: AzureOpenAI,
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder,
+  sessionId: string = 'default'
+) {
+  try {
+    console.log('Starting second completion with conversation context');
+    
+    // Get the full conversation context including function results and system prompts
+    const fullContext = getConversationContext(sessionId);
+    console.log('Full context messages length:', fullContext.length);
+    
+    // Stream the second completion response
+    const streamResponse = await azureClient.chat.completions.create({
+      messages: fullContext,
+      temperature: 0.7,
+      model: "gpt-4o-mini",
+      stream: true
+    });
+
+    // Stream the analysis response
+    let aiResponseText = '';
+
+    for await (const chunk of streamResponse) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      if (content) {
+        aiResponseText += content;
+        
+        const chunkData = {
+          type: 'ai_response_chunk',
+          data: { content }
+        };
+        
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`));
+      }
     }
-    throw error; // Re-throw if we have no items at all
+
+    // Add AI response to conversation context
+    appendToConversationContext(sessionId, [{
+      role: "assistant",
+      content: aiResponseText
+    }]);
+
+    console.log('Completed streaming second completion');
+
+    // Send complete response for client storage
+    const finalData = {
+      type: 'ai_response_complete',
+      data: { 
+        content: aiResponseText,
+        Items: items,
+        filter: filter
+      }
+    };
+
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalData)}\n\n`));
+    controller.close();
+
+  } catch (aiError) {
+    console.error('Error generating second completion:', aiError);
+    
+    // Use fallback response or error message
+    const errorMessage = `Sorry, I encountered an error analyzing the data: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`;
+    
+    const aiErrorData = {
+      type: 'ai_response_complete',
+      data: { 
+        content: errorMessage,
+        Items: items,
+        filter: filter
+      }
+    };
+    
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(aiErrorData)}\n\n`));
+    controller.close();
   }
 }

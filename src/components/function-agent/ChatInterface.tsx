@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { PricingItem } from '@/lib/function-agent/price-api-types';
+import { PricingItem, ToolSelection } from '@/lib/function-agent/function-agent-types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -17,7 +17,12 @@ type ResultsData = {
   aiResponse?: string;
 };
 
-export default function ChatInterface({ onResults }: { onResults: (data: ResultsData) => void }) {
+interface ChatInterfaceProps {
+  onResults: (data: ResultsData) => void;
+  selectedTools: ToolSelection;
+}
+
+export default function ChatInterface({ onResults, selectedTools }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,30 +31,44 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Add session ID state
+  const [sessionId] = useState<string>(() => `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
 
   useEffect(() => {
     // Add initial message
     setMessages([
       {
         role: 'assistant',
-        content: 'Welcome to Azure Price Agent! You can ask everything about Azure prices.',
+        content: 'Welcome to Function Agent! ',
         id: 'welcome-message'
       }
     ]);
   }, []);
 
-  // Clear chat history function - keeps the welcome message
+  // Clear chat history function - keeps the welcome message and resets the server context
   const clearChat = () => {
     setMessages([
       {
         role: 'assistant',
-        content: 'Welcome to Azure Price Agent! You can ask everything about Azure prices.',
+        content: 'Welcome to Function Agent! ',
         id: 'welcome-message'
       }
     ]);
     setStreamingResponse('');
     // Also clear results
     onResults({ items: [], filter: '', aiResponse: undefined });
+    
+    // Make a request to reset the conversation context on the server
+    fetch('/api/function-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        prompt: "Reset context",
+        sessionId,
+        resetContext: true
+      }),
+    }).catch(err => console.error('Error resetting context:', err));
   };
 
   useEffect(() => {
@@ -94,11 +113,15 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
     setStreamingResponse('');
 
     try {
-      // Updated API endpoint from /api/prices to /api/function-agent
+      // Include selected tools and session ID in the API request
       const response = await fetch('/api/function-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: userMessage }),
+        body: JSON.stringify({ 
+          prompt: userMessage,
+          selectedTools, // Pass the selected tools
+          sessionId // Pass the session ID to maintain conversation context
+        }),
       });
 
       if (!response.ok) {

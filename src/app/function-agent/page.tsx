@@ -1,14 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PricingItem } from '@/lib/function-agent/price-api-types';
+import { PricingItem, ToolSelection } from '@/lib/function-agent/function-agent-types';
 import ChatInterface from '@/components/function-agent/ChatInterface';
 import PriceResults from '@/components/function-agent/PriceResults';
+import ToolsBox from '@/components/function-agent/ToolsBox';
+import { availableTools } from '@/lib/function-agent/tools-schema';
 import Image from 'next/image';
 
 export default function FunctionAgentPage() {
   const [results, setResults] = useState<PricingItem[]>([]);
+  const [filter, setFilter] = useState('');
   const [chatHeight, setChatHeight] = useState('450px');
+  const [selectedTools, setSelectedTools] = useState<ToolSelection>({
+    toolIds: availableTools.filter(t => t.enabled).map(t => t.id)
+  });
 
   useEffect(() => {
     const updateChatHeight = () => {
@@ -18,7 +24,7 @@ export default function FunctionAgentPage() {
       const availableHeight = vh - headerHeight - bottomMargin;
       
       const minHeight = 320;
-      const maxHeight = 700;
+      const maxHeight = 800; // 增加最大高度
       const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight * 0.85));
       
       setChatHeight(`${calculatedHeight}px`);
@@ -29,19 +35,30 @@ export default function FunctionAgentPage() {
     return () => window.removeEventListener('resize', updateChatHeight);
   }, []);
 
-  const handleResults = ({items, filter}: {items: PricingItem[], filter: string}) => {
+  const handleResults = ({items, filter, aiResponse}: {items: PricingItem[], filter: string, aiResponse?: string}) => {
     setResults(items);
+    setFilter(filter);
     console.log('OData Query Filter:', filter);
+  };
+
+  const handleToolSelectionChange = (selection: ToolSelection) => {
+    console.log('Tool selection changed:', selection);
+    setSelectedTools(selection);
+  };
+
+  const handleClearResults = () => {
+    setResults([]);
+    setFilter('');
   };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-3 px-4 md:py-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden mb-4">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 z-0"></div>
           
           <div className="relative z-10 p-3 md:p-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-1">
                   <div className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 p-0.5 z-10">
@@ -56,7 +73,7 @@ export default function FunctionAgentPage() {
                   </div>
                 </div>
                 <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-700">
-                  Azure Price Agent
+                  Funcation Agent
                 </h1>
               </div>
               
@@ -83,19 +100,32 @@ export default function FunctionAgentPage() {
                 </a>
               </div>
             </div>
-            
-            <p className="text-xs text-gray-500 mb-2">
-              Search Azure pricing with natural language
-            </p>
-            
-            <div 
-              style={{ height: chatHeight }} 
-              className="rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all"
-            >
-              <ChatInterface onResults={handleResults} />
+
+            <div className="flex flex-row gap-4">
+              {/* Chat Interface - now takes less width */}
+              <div 
+                style={{ height: chatHeight }} 
+                className="w-3/4 rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all"
+              >
+                <ChatInterface onResults={handleResults} selectedTools={selectedTools} />
+              </div>
+              
+              {/* Tools Box - new component */}
+              <div 
+                style={{ height: chatHeight }}
+                className="w-1/4 rounded-xl overflow-hidden transition-all"
+              >
+                <ToolsBox tools={availableTools} onToolSelectionChange={handleToolSelectionChange} />
+              </div>
             </div>
           </div>
         </div>
+        
+        {filter && (
+          <div className="mb-4">
+            <QueryFilter totalCount={results.length} filter={filter} onClear={handleClearResults} />
+          </div>
+        )}
         
         <div id="results" className={`transition-opacity duration-300 ${results.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
           {results.length > 0 && <PriceResults items={results} />}
@@ -104,3 +134,6 @@ export default function FunctionAgentPage() {
     </main>
   );
 }
+
+// Import the QueryFilter component to display the filter
+import QueryFilter from '@/components/function-agent/QueryFilter';

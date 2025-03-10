@@ -1,7 +1,7 @@
 'use client';
 
-import { PricingItem } from '@/lib/function-agent/price-api-types';
-import { getRegionDisplayName } from '@/lib/function-agent/azure-regions';
+import { PricingItem } from '@/lib/function-agent/function-agent-types';
+import { getRegionDisplayName } from '@/lib/function-agent/azure-price-context';
 import { useState, useMemo } from 'react';
 
 type SortField = 'price' | 'product' | 'sku' | 'region' | '';

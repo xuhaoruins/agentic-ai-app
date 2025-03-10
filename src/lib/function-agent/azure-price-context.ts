@@ -1,3 +1,5 @@
+// This file contains the context for the Azure Price tool, including VM sizes, regions, and prompts.
+
 export const azureVmSize = [
   {
       "VM_Type": "General Purpose",
@@ -152,3 +154,98 @@ export const azureVmSize = [
       "Keywords": "large memory, EDA, high performance"
     }
 ];
+
+export const azureRegions: { [key: string]: string } = {
+  "australiacentral": "Australia Central",
+  "australiacentral2": "Australia Central 2",
+  "australiaeast": "Australia East",
+  "australiasoutheast": "Australia Southeast",
+  "brazilsouth": "Brazil South",
+  "brazilsoutheast": "Brazil Southeast",
+  "brazilus": "Brazil US",
+  "canadacentral": "Canada Central",
+  "canadaeast": "Canada East",
+  "centralindia": "Central India",
+  "centralus": "Central US",
+  "centraluseuap": "Central US EUAP",
+  "eastasia": "East Asia",
+  "eastus": "East US",
+  "eastus2": "East US 2",
+  "eastus2euap": "East US 2 EUAP",
+  "eastusstg": "East US STG",
+  "francecentral": "France Central",
+  "francesouth": "France South",
+  "germanynorth": "Germany North",
+  "germanywestcentral": "Germany West Central",
+  "israelcentral": "Israel Central",
+  "italynorth": "Italy North",
+  "japaneast": "Japan East",
+  "japanwest": "Japan West",
+  "jioindiacentral": "Jio India Central",
+  "jioindiawest": "Jio India West",
+  "koreacentral": "Korea Central",
+  "koreasouth": "Korea South",
+  "mexicocentral": "Mexico Central",
+  "newzealandnorth": "New Zealand North",
+  "northcentralus": "North Central US",
+  "northeurope": "North Europe",
+  "norwayeast": "Norway East",
+  "norwaywest": "Norway West",
+  "polandcentral": "Poland Central",
+  "qatarcentral": "Qatar Central",
+  "southafricanorth": "South Africa North",
+  "southafricawest": "South Africa West",
+  "southcentralus": "South Central US",
+  "southcentralusstg": "South Central US STG",
+  "southindia": "South India",
+  "southeastasia": "Southeast Asia",
+  "spaincentral": "Spain Central",
+  "swedencentral": "Sweden Central",
+  "swedensouth": "Sweden South",
+  "switzerlandnorth": "Switzerland North",
+  "switzerlandwest": "Switzerland West",
+  "uaecentral": "UAE Central",
+  "uaenorth": "UAE North",
+  "uksouth": "UK South",
+  "ukwest": "UK West",
+  "westcentralus": "West Central US",
+  "westeurope": "West Europe",
+  "westindia": "West India",
+  "westus": "West US",
+  "westus2": "West US 2",
+  "westus3": "West US 3"
+};
+
+/**
+ * System prompt for Azure price analysis to guide the model's response
+ */
+export const azurePriceAnalysisPrompt = `
+You are Azure Price Agent, an expert in analyzing Azure pricing data.
+
+You have received query results from Azure Price API. When analyzing this data:
+
+1. Clearly summarize the pricing data for the requested Azure resources
+2. Compare different options when relevant (region differences, VM series comparisons, etc.)
+3. Highlight any special pricing features like reservation discounts or savings plans
+4. Format prices consistently with proper currency symbols and decimal places
+5. Provide context about what the prices mean (hourly rates, storage costs, etc.)
+6. Format your response in well-structured markdown with appropriate headings and tables
+7. Focus on the most relevant information from the price data
+
+If minimal price data is available, explain why that might be and suggest improvements to the query.
+`;
+
+
+/**
+ * Gets a human-readable display name for an Azure region code
+ * @param regionCode The Azure region code (e.g., "eastus", "westeurope")
+ * @returns The display name of the region or the original code if not found
+ */
+export function getRegionDisplayName(regionCode: string | null | undefined): string {
+  if (!regionCode) return 'Global';
+  
+  const normalizedCode = regionCode.toLowerCase().trim();
+  
+  // Return the mapped region name or the original code if no mapping exists
+  return azureRegions[normalizedCode] || regionCode;
+}
