@@ -49,15 +49,11 @@ export default function ToolsBox({ tools, onToolSelectionChange }: ToolsBoxProps
                 <label htmlFor={`tool-${tool.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
                   {tool.name}
                 </label>
-                <p className="text-xs text-gray-500 mt-1">
-                  {tool.description}
-                </p>
               </div>
             </div>
           ))}
         </div>
       </div>
-      
       <div className="border-t border-gray-200 px-3 py-2 md:px-4 md:py-3 bg-gradient-to-r from-gray-50 to-indigo-50 text-xs text-gray-500">
         {selectedTools.length === 0 ? (
           <p>No tools selected. Chat will use basic capabilities only.</p>
