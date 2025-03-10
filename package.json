@@ -29,27 +29,18 @@
     "tailwindcss": "3.3.3"
   },
   "devDependencies": {
-    "@eslint/config-array": "^2.0.0",
-    "@eslint/object-schema": "^2.0.0",
     "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^22.13.10",
     "@types/react-syntax-highlighter": "^15.5.11",
-    "@viz-js/viz": "^3.2.4",
     "eslint": "^8.56.0",
     "eslint-config-next": "13.4.19",
     "glob": "^10.3.10",
     "rimraf": "^5.0.5",
     "typescript": "^5.8.2"
   },
-  "resolutions": {
-    "glob": "^10.3.10",
-    "rimraf": "^5.0.5",
-    "inflight": "^2.0.0",
-    "@humanwhocodes/object-schema": "@eslint/object-schema",
-    "@humanwhocodes/config-array": "@eslint/config-array",
-    "viz.js": "@viz-js/viz"
-  },
   "overrides": {
-    "eslint": "^8.56.0"
+    "eslint": "^8.56.0",
+    "glob": "^10.3.10",
+    "rimraf": "^5.0.5"
   }
 }
