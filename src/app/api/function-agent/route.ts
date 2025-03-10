@@ -7,6 +7,11 @@ import { PricingItem } from '@/lib/function-agent/function-agent-types';
 import { availableTools } from '@/lib/function-agent/tools-schema';
 import { azurePriceAnalysisPrompt } from '@/lib/function-agent/azure-price-context';
 
+// Define the ToolSelection interface
+interface ToolSelection {
+  toolIds: string[];
+}
+
 export const runtime = 'edge';
 export const maxDuration = 60;
 
