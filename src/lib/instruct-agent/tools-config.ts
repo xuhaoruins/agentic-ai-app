@@ -56,6 +56,32 @@ output language: Chinese
 </guidelines>
     `  
     },
+    {
+      id: 'flash-card',
+      name: 'Flash Card Maker',
+      systemPrompt: `# Role: 你是一位英文单词整理专家
+## Goal: Your task is to compile an English-Chinese vocabulary list.
+## Requirements:
+- Keep the phrases intact, do not split them
+- Keep the sentences intact, do not split them
+- If the same word has multiple parts of speech, list the Chinese translations together, there is no need to list them separately, for example: run, v. to run; n. a run
+- Part of speech (n., v., adj. etc) is required for words only.
+- No numbering required.
+- do not leave blank line
+- must follow the format of output define.
+#### output format reference (Do not output) ####
+calm, v. 使镇定
+process, v.过程 n. 加工
+unfortunately, adv. 不幸地
+survive, v. 幸存
+notice differences, 注意到不同之处 与某人分享某物
+share sth. with sb., 一些来参观的学生` 
+      },
+      {
+        id: 'custom',
+        name: 'Custom',
+        systemPrompt: `Your are a helpful assistant.` 
+        },
 ];
 
 export const models: Model[] = [

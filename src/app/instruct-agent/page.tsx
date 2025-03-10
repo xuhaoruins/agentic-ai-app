@@ -363,20 +363,20 @@ export default function InstructAgentPage() {
         /* 代码块选择样式 */
         pre code::selection {
           background-color: rgba(255, 255, 255, 0.2) !important;
-          color: #e5e7eb !important;
+          color: #e5e7eb !重要;
         }
         pre code::-moz-selection {
           background-color: rgba(255, 255, 255, 0.2) !important;
-          color: #e5e7eb !important;
+          color: #e5e7eb !重要;
         }
       `}</style>
 
-      <div className="flex justify-between items-center bg-white p-4 rounded-lg border-3 border-blue-300 shadow-sm">
+      <div className="flex justify-between items-center bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
           Instruct Agent
         </h1>
         <div className="flex gap-4">
-          <div className="relative border-3 border-blue-300 hover:border-blue-400 transition-colors rounded-lg shadow-sm">
+          <div className="relative border-2 border-gray-200 hover:border-blue-400 transition-colors rounded-lg shadow-sm">
             <select
               value={selectedTool.id}
               onChange={handleToolChange}
@@ -397,7 +397,7 @@ export default function InstructAgentPage() {
             </div>
           </div>
           
-          <div className="relative border-3 border-blue-300 hover:border-blue-400 transition-colors rounded-lg shadow-sm">
+          <div className="relative border-2 border-gray-200 hover:border-blue-400 transition-colors rounded-lg shadow-sm">
             <select
               value={selectedModel.id}
               onChange={(e) => setSelectedModel(models.find(m => m.id === e.target.value) || models[0])}
@@ -432,7 +432,7 @@ export default function InstructAgentPage() {
       )}
 
       <div className="flex flex-1 gap-4 mt-4 min-h-0">
-        <div className="bg-white rounded-lg p-4 border-3 border-indigo-300 shadow-sm flex flex-col w-1/3">
+        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 shadow-sm flex flex-col w-1/3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               <span className="material-icons-outlined text-blue-600">edit_note</span>
@@ -449,14 +449,14 @@ export default function InstructAgentPage() {
             <textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              className="instruction-template w-full h-full p-3 rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-colors bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 font-medium resize-none shadow-inner"
+              className="instruction-template w-full h-full p-3 rounded-lg border-2 border-gray-200 hover:border-gray-300 transition-colors bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-800 font-medium resize-none shadow-inner"
               placeholder="Enter system prompt..."
             />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border-3 border-blue-300 overflow-hidden flex-1 flex flex-col">
-          <div className="border-b-2 border-blue-200 p-4 bg-gray-50 flex justify-between items-center">
+        <div className="bg-white rounded-lg shadow-sm border-2 border-gray-200 overflow-hidden flex-1 flex flex-col">
+          <div className="border-b border-gray-200 p-4 bg-gray-50 flex justify-between items-center">
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <span className="material-icons-outlined text-blue-600">chat</span>
               <span>Chat History</span>
@@ -480,12 +480,12 @@ export default function InstructAgentPage() {
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`group relative p-4 rounded-lg max-w-[80%] border-3 ${
+                  className={`group relative p-4 rounded-lg max-w-[80%] ${
                     msg.role === 'user' 
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400 user-message' 
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-none user-message' 
                       : msg.role === 'system'
-                      ? 'bg-gray-100 text-gray-700 border-gray-300'
-                      : 'bg-white text-gray-800 border-blue-300 hover:border-blue-400 shadow-md assistant-message'
+                      ? 'bg-gray-100 text-gray-700 border border-gray-200'
+                      : 'bg-white text-gray-800 border border-gray-200 hover:border-blue-300 shadow-md assistant-message'
                   }`}
                 >
                   {msg.role !== 'system' && (
@@ -514,16 +514,16 @@ export default function InstructAgentPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t-2 border-blue-200 mt-auto">
-            <div className="p-3 bg-gray-50 border-b-2 border-blue-200">
+          <div className="border-t border-gray-200 mt-auto">
+            <div className="p-3 bg-gray-50 border-b border-gray-200">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-                  className={`flex items-center px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 border-2 ${
+                  className={`flex items-center px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 border ${
                     webSearchEnabled 
-                      ? 'bg-blue-50 text-blue-700 border-blue-300 hover:border-blue-400' 
-                      : 'bg-white text-gray-600 border-blue-300 hover:border-blue-400'
+                      ? 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-300' 
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <span className="material-icons-outlined mr-2 text-sm">
@@ -533,7 +533,7 @@ export default function InstructAgentPage() {
                 </button>
 
                 {uploadedFile && (
-                  <div className="flex items-center bg-blue-50 text-blue-700 border-2 border-blue-300 px-3 py-1 rounded-lg">
+                  <div className="flex items-center bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-lg">
                     <span className="material-icons-outlined mr-2 text-sm">description</span>
                     <span className="text-sm truncate max-w-[150px]">{uploadedFile.name}</span>
                     <button 
@@ -570,7 +570,7 @@ export default function InstructAgentPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 text-gray-600 hover:bg-gray-100 border-2 border-blue-200 rounded-lg flex items-center justify-center transition-colors"
+                  className="p-2 text-gray-600 hover:bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-center transition-colors"
                   title="Upload document"
                   disabled={isLoading || isProcessingFile}
                 >
@@ -582,13 +582,13 @@ export default function InstructAgentPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Type your message here..."
-                  className="flex-1 p-2 rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-inner"
+                  className="flex-1 p-2 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-inner"
                   disabled={isLoading}
                 />
                 <button
                   type="submit"
                   disabled={isLoading || (input.trim() === '' && !fileContent)}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border-2 border-blue-600"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border-none"
                 >
                   Send
                 </button>
