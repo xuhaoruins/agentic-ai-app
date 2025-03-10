@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { getRegionDisplayName } from '@/lib/function-agent/azure-regions';
 
 interface QueryFilterProps {
   totalCount: number;
