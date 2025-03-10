@@ -15,7 +15,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:gap-12">
+        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12">
           {/* Function Agent Card */}
           <Link href="/function-agent" className="group">
             <div className="relative overflow-hidden rounded-2xl border-3 border-blue-300 bg-white p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-blue-400">
@@ -39,6 +39,20 @@ export default function Home() {
                 <p className="mt-4 text-gray-600">
                   Get assistance with documentation, code, text processing, and more 
                   through a versatile AI chat interface.
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          {/* Workflow Agent Card */}
+          <Link href="/workflow-agent" className="group">
+            <div className="relative overflow-hidden rounded-2xl border-3 border-purple-300 bg-white p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-purple-400">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-blue-600/5"></div>
+              <div className="relative">
+                <h2 className="text-2xl font-bold text-gray-900">Workflow Agent</h2>
+                <p className="mt-4 text-gray-600">
+                  Experience a multi-step AI workflow with specialized agents for research, 
+                  writing, and review working together on complex tasks.
                 </p>
               </div>
             </div>
