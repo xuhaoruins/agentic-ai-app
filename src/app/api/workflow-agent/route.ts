@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { createWorkflowAgent } from '@/lib/workflow-agent/workflow-agent';
 import { WorkflowAgentEvent } from '@/lib/types';
 
+// Using Edge runtime for improved performance with streaming responses
+// Note: This disables static generation for this API route, which is expected for dynamic API endpoints
 export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {

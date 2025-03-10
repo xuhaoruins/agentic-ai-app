@@ -3,6 +3,8 @@ import { createChatClient, createSearchClient } from '@/lib/instruct-agent/azure
 import { ChatMessage } from '@/lib/types';
 import { getToolById } from '@/lib/instruct-agent/tools-config';
 
+// Using Edge runtime for improved performance with streaming responses
+// Note: This disables static generation for this API route, which is expected for dynamic API endpoints
 export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
