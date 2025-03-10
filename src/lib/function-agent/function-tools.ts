@@ -77,7 +77,10 @@ export async function WebSearch(query: string) {
     try {
         // Use the official Tavily SDK
         const client = tavily({ apiKey });
-        const searchResponse = await client.search(query);
+        const searchResponse = await client.search(query, {
+            search_depth: "basic",
+            max_results: 10
+        });
         
         console.log(`Web search results count: ${searchResponse?.results?.length || 0}`);
         
