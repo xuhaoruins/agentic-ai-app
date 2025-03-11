@@ -1,31 +1,36 @@
-# Agentic AI App
+# Agentic AI Application
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+A modern AI agent platform built with Next.js, featuring multiple specialized AI agents for different tasks.
 
 ## Project Overview
 
-This project is an AI-powered application with multiple agents designed to assist with various tasks related to Azure services. The application is built using Next.js and includes the following modules:
+This project implements a multi-agent AI application with specialized components:
 
-### Modules
+- **Function Agent**: Executes Azure price queries and web searches through function calling capabilities
+- **Instruct Agent**: Processes documents and follows custom system prompts for specific tasks
+- **Workflow Agent**: Coordinates multi-step AI processes through a chain of specialized agents
 
-- **Function Agent**: Provides a chat interface to query Azure prices and perform web searches.
-  - `src/app/api/function-agent/route.ts`: Handles API requests for function agents, including Azure price queries and web searches.
-  - `src/app/function-agent/page.tsx`: Contains the UI for the Function Agent, including chat interface and results display.
-  - `src/components/function-agent/ChatInterface.tsx`: Implements the chat interface for the Function Agent.
-  - `src/components/function-agent/Results.tsx`: Displays the results of queries made by the Function Agent.
-  - `src/lib/function-agent/function-tools.ts`: Defines tools for the Function Agent, including Azure price queries and web searches.
-  - `src/lib/function-agent/tools-schema.ts`: Defines the schema for the tools used in the Function Agent.
+## Project Structure
 
-- **Instruct Agent**: Provides a chat interface to assist with documentation, code, text processing, and more.
-  - `src/app/api/instruct-agent/route.ts`: Processes API requests for instruct agents, supporting various tools and models.
-  - `src/app/instruct-agent/page.tsx`: Provides the UI for the Instruct Agent, allowing users to interact with different tools.
-  - `src/lib/instruct-agent/tools-config.ts`: Configures tools and models for the Instruct Agent.
+### Core Components
 
-- **Workflow Agent**: Facilitates complex task workflows with multi-step AI processes.
-  - `src/app/api/workflow-agent/route.ts`: Manages API requests for workflow agents, enabling multi-step AI workflows.
-  - `src/app/workflow-agent/page.tsx`: Includes the UI for the Workflow Agent, facilitating complex task workflows.
-  - `src/components/workflow-agent/AgentLog.tsx`: Logs events and outputs for the Workflow Agent.
-  - `src/lib/workflow-agent/workflow-agent.ts`: Creates and manages the Workflow Agent, supporting multi-step AI workflows.
+- **Function Agent**: `/app/function-agent/` - Agent with tool-calling capabilities for Azure pricing and web search
+- **Instruct Agent**: `/app/instruct-agent/` - Agent that follows specialized system prompts with document processing
+- **Workflow Agent**: `/app/workflow-agent/` - Agent that coordinates multi-step processes through multiple agents
+
+### Library Structure
+
+- `/lib/function-agent/` - Function definitions, pricing tools and schemas
+- `/lib/instruct-agent/` - Azure client, file parser and tools configuration
+- `/lib/workflow-agent/` - Workflow orchestration and state management
+- `/components/` - Reusable UI components for each agent
+
+### API Routes
+
+- `/app/api/function-agent/` - Handles function calling for Azure pricing and web search
+- `/app/api/instruct-agent/` - Processes document uploads and prompt instructions
+- `/app/api/workflow-agent/` - Coordinates multi-agent workflows with state management
+
 
 ## Getting Started
 
@@ -56,9 +61,8 @@ yarn dev
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create a `.env.local` file with the following environment variables:
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
 
 ## Deployment
 
@@ -72,10 +76,7 @@ To deploy this project using Azure Static Web Apps, follow these steps:
    - Click "Create" and fill in the required details.
 
 2. **Configure the build and deployment settings**:
-   - Set the build details as follows:
-     - **App location**: `/`
-     - **API location**: `api`
-     - **Output location**: `out`
+   - keep default
 
 3. **Connect to your GitHub repository**:
    - Authorize Azure to access your GitHub account.
@@ -91,11 +92,3 @@ To deploy this project using Azure Static Web Apps, follow these steps:
 
 For more details, refer to the [Azure Static Web Apps documentation](https://docs.microsoft.com/en-us/azure/static-web-apps/).
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
