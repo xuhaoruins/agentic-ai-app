@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agentic AI Application
+
+A modern AI agent platform built with Next.js, featuring multiple specialized AI agents for different tasks.
+
+## Project Overview
+
+This project implements a multi-agent AI application with specialized components:
+
+- **Function Agent**: Executes Azure price queries and web searches through function calling capabilities
+- **Instruct Agent**: Processes documents and follows custom system prompts for specific tasks
+- **Workflow Agent**: Coordinates multi-step AI processes through a chain of specialized agents
+
+## Project Structure
+
+### Core Components
+
+- **Function Agent**: `/app/function-agent/` - Agent with tool-calling capabilities for Azure pricing and web search
+- **Instruct Agent**: `/app/instruct-agent/` - Agent that follows specialized system prompts with document processing
+- **Workflow Agent**: `/app/workflow-agent/` - Agent that coordinates multi-step processes through multiple agents
+
+### Library Structure
+
+- `/lib/function-agent/` - Function definitions, pricing tools and schemas
+- `/lib/instruct-agent/` - Azure client, file parser and tools configuration
+- `/lib/workflow-agent/` - Workflow orchestration and state management
+- `/components/` - Reusable UI components for each agent
+
+### API Routes
+
+- `/app/api/function-agent/` - Handles function calling for Azure pricing and web search
+- `/app/api/instruct-agent/` - Processes document uploads and prompt instructions
+- `/app/api/workflow-agent/` - Coordinates multi-agent workflows with state management
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Create a `.env.local` file with the following environment variables:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Deploy on Azure Static Web Apps
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To deploy this project using Azure Static Web Apps, follow these steps:
 
-## Learn More
+1. **Create a new Static Web App**:
+   - Go to the [Azure Portal](https://portal.azure.com/).
+   - Click on "Create a resource" and search for "Static Web App".
+   - Click "Create" and fill in the required details.
 
-To learn more about Next.js, take a look at the following resources:
+2. **Configure the build and deployment settings**:
+   - Set the build details as follows:
+     - **App location**: `/`
+     - **API location**: `api`
+     - **Output location**: `out`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Connect to your GitHub repository**:
+   - Authorize Azure to access your GitHub account.
+   - Select the repository and branch you want to deploy.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. **Deploy the app**:
+   - Click "Review + create" and then "Create".
+   - Azure will automatically build and deploy your app.
 
-## Deploy on Vercel
+5. **Monitor the deployment**:
+   - You can monitor the deployment status in the Azure Portal.
+   - Once the deployment is complete, you will receive a URL to access your app.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For more details, refer to the [Azure Static Web Apps documentation](https://docs.microsoft.com/en-us/azure/static-web-apps/).
