@@ -31,11 +31,38 @@ This project implements a multi-agent AI application with specialized components
 - `/app/api/instruct-agent/` - Processes document uploads and prompt instructions
 - `/app/api/workflow-agent/` - Coordinates multi-agent workflows with state management
 
+
 ## Getting Started
 
-### Prerequisites
+First, clone the repository:
+
+```bash
+git clone https://github.com/xuhaoruins/agentic-ai-app.git
+cd agentic-ai-app
+```
+
+Install the dependencies:
+
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+Run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+```
 
 Create a `.env.local` file with the following environment variables:
+
 
 ## Deployment
 
@@ -49,10 +76,7 @@ To deploy this project using Azure Static Web Apps, follow these steps:
    - Click "Create" and fill in the required details.
 
 2. **Configure the build and deployment settings**:
-   - Set the build details as follows:
-     - **App location**: `/`
-     - **API location**: `api`
-     - **Output location**: `out`
+   - keep default
 
 3. **Connect to your GitHub repository**:
    - Authorize Azure to access your GitHub account.
@@ -67,3 +91,4 @@ To deploy this project using Azure Static Web Apps, follow these steps:
    - Once the deployment is complete, you will receive a URL to access your app.
 
 For more details, refer to the [Azure Static Web Apps documentation](https://docs.microsoft.com/en-us/azure/static-web-apps/).
+
