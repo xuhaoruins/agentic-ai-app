@@ -246,8 +246,61 @@ export default function InstructAgentPage() {
       <div className="prose prose-sm max-w-none prose-gray dark:prose-invert font-medium text-gray-900">
         <ReactMarkdown
           components={{
-
-          }}>
+            // Properly handle paragraphs
+            p: ({ children }) => (
+              <p className="mb-4 last:mb-0">{children}</p>
+            ),
+            // Handle headings with high contrast
+            h1: ({ children }) => (
+              <h1 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-1 mb-3">{children}</h1>
+            ),
+            h2: ({ children }) => (
+              <h2 className="text-lg font-bold text-gray-800 mb-3">{children}</h2>
+            ),
+            h3: ({ children }) => (
+              <h3 className="text-base font-bold text-gray-800 mb-2">{children}</h3>
+            ),
+            h4: ({ children }) => (
+              <h4 className="text-base font-semibold text-gray-800 mb-2">{children}</h4>
+            ),
+            // Handle code blocks with proper formatting
+            code({ node, inline, className, children, ...props }: CodeProps) {
+              const match = /language-(\w+)/.exec(className || '');
+              // Ensure children is always a string
+              const codeContent = Array.isArray(children) 
+                ? children.join('') 
+                : typeof children === 'string' 
+                  ? children 
+                  : String(children || '');
+              
+              return !inline && match ? (
+                <div className="relative group">
+                  <button
+                    onClick={() => copyToClipboard(codeContent)}
+                    className="absolute right-2 top-2 p-1 rounded bg-gray-700 text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Copy code"
+                  >
+                    <span className="material-icons-outlined text-sm">content_copy</span>
+                  </button>
+                  <SyntaxHighlighter
+                    {...props}
+                    style={vscDarkPlus}
+                    language={match[1]}
+                    PreTag="div"
+                    className="rounded-md"
+                  >
+                    {codeContent.replace(/\n$/, '')}
+                  </SyntaxHighlighter>
+                </div>
+              ) : (
+                <code {...props} className={`${className} bg-gray-200 text-gray-900 rounded px-1 py-0.5`}>
+                  {children}
+                </code>
+              );
+            }
+          }}
+          remarkPlugins={[remarkGfm]}
+        >
           {safeContent || ' '}
         </ReactMarkdown>
       </div>
