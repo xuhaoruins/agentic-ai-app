@@ -1,11 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useSidebar } from '@/components/SidebarContext';
 
 export default function Home() {
+  const { isExpanded } = useSidebar();
+  
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="max-w-6xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+    <main className={`min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 ${
+      isExpanded ? 'ml-64' : 'ml-16'
+    } transition-all duration-300`}>
+      <div className="w-full px-4 py-12 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-700 sm:text-6xl">
             Agentic AI Apps
@@ -15,7 +20,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12">
+        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12 max-w-6xl mx-auto">
           {/* Function Agent Card */}
           <Link href="/function-agent" className="group">
             <div className="relative overflow-hidden rounded-2xl border-3 border-blue-300 bg-white p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-blue-400">
