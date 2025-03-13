@@ -1,6 +1,6 @@
 # Agentic AI Application
 
-A modern AI agent platform built with GitHub Copilot Agent and Next.js, featuring multiple specialized AI agents for different tasks.
+A modern AI agent platform built with **GitHub Copilot Agent** and Next.js, featuring multiple specialized AI agents for different tasks.
 
 ## Project Overview
 
