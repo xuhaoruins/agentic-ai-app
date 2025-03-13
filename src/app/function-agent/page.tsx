@@ -7,6 +7,7 @@ import Results from '@/components/function-agent/Results';
 import ToolsBox from '@/components/function-agent/ToolsBox';
 import { availableTools } from '@/lib/function-agent/tools-schema';
 import Image from 'next/image';
+import { useSidebar } from '@/components/SidebarContext';
 
 // Define a type that can handle different result types
 type ResultItem = PricingItem | {
@@ -17,6 +18,7 @@ type ResultItem = PricingItem | {
 };
 
 export default function FunctionAgentPage() {
+  const { isExpanded } = useSidebar();
   const [results, setResults] = useState<ResultItem[]>([]);
   const [resultType, setResultType] = useState<string>('price');
   const [filter, setFilter] = useState('');
@@ -68,8 +70,10 @@ export default function FunctionAgentPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-3 px-4 md:py-4">
-      <div className="max-w-7xl mx-auto">
+    <main className={`min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-3 px-4 md:py-4 ${
+      isExpanded ? 'ml-64' : 'ml-16'
+    } transition-all duration-300`}>
+      <div className="w-full mx-auto">
         <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden mb-4">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 z-0"></div>
           

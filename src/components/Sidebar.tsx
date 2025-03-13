@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -12,20 +12,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isExpanded, toggleSidebar }) => {
   const pathname = usePathname();
   
-  // Adjust main content when sidebar state changes
-  useEffect(() => {
-    const mainElement = document.querySelector('main');
-    if (mainElement) {
-      if (isExpanded) {
-        mainElement.classList.remove('ml-16');
-        mainElement.classList.add('ml-64');
-      } else {
-        mainElement.classList.remove('ml-64');
-        mainElement.classList.add('ml-16');
-      }
-    }
-  }, [isExpanded]);
-
   return (
     <>
       {/* Mobile overlay */}
