@@ -1,3 +1,33 @@
+# Agentic AI App
+
+A Next.js application with AI agents using CopilotKit.
+
+## Installation
+
+Install dependencies using pnpm:
+
+```bash
+pnpm install
+```
+
+## Development
+
+Run the development server:
+
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Dependencies
+
+This project uses:
+- Next.js
+- React 19
+- CopilotKit v1.6.0
+- Tailwind CSS
+
 # Agentic AI Application
 
 A modern AI agent platform built with GitHub Copilot Agent and Next.js, featuring multiple specialized AI agents for different tasks.

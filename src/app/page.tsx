@@ -62,6 +62,20 @@ export default function Home() {
               </div>
             </div>
           </Link>
+          
+          {/* MCP Agent Card */}
+          <Link href="/mcp-agent" className="group">
+            <div className="relative overflow-hidden rounded-2xl border-3 border-green-300 bg-white p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-green-400">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-600/5 to-blue-600/5"></div>
+              <div className="relative">
+                <h2 className="text-2xl font-bold text-gray-900">MCP Agent</h2>
+                <p className="mt-4 text-gray-600">
+                  Configure and connect to multiple MCP servers for powerful distributed AI processing 
+                  capabilities via standard I/O and SSE connections.
+                </p>
+              </div>
+            </div>
+          </Link>
         </div>
 
         <div className="mt-16 text-center">
