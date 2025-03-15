@@ -27,6 +27,9 @@ jobs:
       - name: Install all dependencies
         run: pnpm install
 
+      - name: Build
+        run: pnpm run build # The build command of your project
+        
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
