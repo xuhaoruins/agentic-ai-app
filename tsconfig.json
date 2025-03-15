@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -24,7 +24,12 @@
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
-    ]
+    ],
+    "forceConsistentCasingInFileNames": true,
+    "noErrorTruncation": true,
+    "types": ["jest", "node"],
+    "skipDefaultLibCheck": true,
+    "disableSourceOfProjectReferenceRedirect": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/types/**/*.d.ts"],
   "exclude": ["node_modules"]

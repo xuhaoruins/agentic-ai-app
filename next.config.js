@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Move from experimental.serverComponentsExternalPackages to top-level serverExternalPackages
+  serverExternalPackages: ['sharp'],
   experimental: {
-    // Remove the outputFileTracing option from here
-    serverComponentsExternalPackages: ['sharp'],
+    // Remove serverComponentsExternalPackages from here
   },
-  // If you still need file tracing, it may be a top-level option now
-  // outputFileTracing: true,
 }
 
 module.exports = nextConfig
