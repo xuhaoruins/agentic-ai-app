@@ -21,6 +21,8 @@ jobs:
           lfs: false
 
       - uses: pnpm/action-setup@v4
+        with:
+          version: 10 # Specify the pnpm version you want to use
 
       - name: Install all dependencies
         run: pnpm install
