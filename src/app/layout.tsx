@@ -18,9 +18,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
+      {/* <head>
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
-      </head>
+      </head> */}
       <body className="bg-gray-50 min-h-screen font-sans antialiased">
         <CopilotKit
           runtimeUrl="/api/copilotkit"

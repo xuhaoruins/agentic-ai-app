@@ -20,6 +20,9 @@ const eslintConfig = [
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/ban-ts-comment": "off",
+      "no-console": "off",
+      "react/prop-types": "off",
+      "max-len": "warn"
     },
   },
 ];
