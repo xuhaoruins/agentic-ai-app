@@ -1,6 +1,6 @@
-import { OpenAI } from "llamaindex";
+import { OpenAI, MessageType, ChatMessage, ToolCallLLMMessageOptions } from "llamaindex";
 import { WorkflowState } from "../types";
-import { ChatMessage } from "../types";
+import { ChatMessage as UserChatMessage } from "../types";
 
 // Define tool interface
 interface Tool {
@@ -50,10 +50,35 @@ export const createWorkflowAgent = async (
       updatedState?: WorkflowState;
     }> {
       try {
-        const messages: ChatMessage[] = [
+        const messages: UserChatMessage[] = [
           { role: 'system', content: this.systemPrompt },
           { role: 'user', content: `Current state: ${JSON.stringify(state)}\n\nUser request: ${userInput}` }
         ];
+
+        // Convert the messages to the proper type
+        const convertToTypedMessages = (messages: { role: string; content: string; id?: string }[]): ChatMessage<ToolCallLLMMessageOptions>[] => {
+          return messages.map(msg => {
+            let role: MessageType;
+            
+            // Convert string roles to MessageType enum
+            if (msg.role === 'user') {
+              role = MessageType.USER;
+            } else if (msg.role === 'assistant') {
+              role = MessageType.ASSISTANT;
+            } else if (msg.role === 'system') {
+              role = MessageType.SYSTEM;
+            } else {
+              // Default to USER if role is unknown
+              role = MessageType.USER;
+            }
+            
+            return {
+              role,
+              content: msg.content,
+              id: msg.id
+            };
+          });
+        };
 
         // 使用非流式响应先尝试
         try {
@@ -67,7 +92,7 @@ export const createWorkflowAgent = async (
           });
           
           const result = await llm.chat({
-            messages: compatibleMessages,
+            messages: convertToTypedMessages(compatibleMessages),
           });
 
           const content = result.message?.content || '';
@@ -138,7 +163,7 @@ export const createWorkflowAgent = async (
 
         // 备用：尝试使用流式响应
         const stream = await llm.chat({
-          messages: messages as ChatMessage[],
+          messages: convertToTypedMessages(messages),
           stream: true,
         });
 
