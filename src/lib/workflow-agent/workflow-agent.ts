@@ -64,7 +64,7 @@ export const createWorkflowAgent = async (
                              msg.role === 'system' ? 'system' : 'user';
             
             return {
-              role: roleValue as any, // Cast to any to avoid type issues
+              role: roleValue as 'user' | 'assistant' | 'system' | 'function' | 'tool', // Use specific role types
               content: msg.content,
               id: msg.id
             };
