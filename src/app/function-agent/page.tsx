@@ -21,8 +21,8 @@ export default function FunctionAgentPage() {
   const { isExpanded } = useSidebar();
   const [results, setResults] = useState<ResultItem[]>([]);
   const [resultType, setResultType] = useState<string>('price');
-  // Keep filter in state as it may be used later or for debugging purposes
-  const [filter, setFilter] = useState(''); 
+  // Using underscore prefix to indicate intentionally unused variable
+  const [_filter, setFilter] = useState(''); 
   const [chatHeight, setChatHeight] = useState('450px');
   const [selectedTools, setSelectedTools] = useState<ToolSelection>({
     toolIds: availableTools.filter(t => t.enabled).map(t => t.id)
@@ -51,7 +51,8 @@ export default function FunctionAgentPage() {
     items: ResultItem[], 
     filter: string, 
     resultType?: string,
-    // Keep aiResponse in parameter as it might be used in the future
+    // Using underscore prefix to indicate intentionally unused parameter
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     aiResponse?: string
   }) => {
     setResults(items);

@@ -2,6 +2,24 @@ import { OpenAI } from "llamaindex";
 import { WorkflowState } from "../types";
 import { ChatMessage } from "../types";
 
+// Define tool interface
+interface Tool {
+  name: string;
+  description: string;
+  // Add other properties tools might have
+  [key: string]: unknown;
+}
+
+// Define chunk interfaces for streaming responses
+interface StreamChunk {
+  delta?: string | { content?: string };
+  content?: string;
+  choices?: Array<{
+    delta?: { content?: string };
+  }>;
+  [key: string]: unknown;
+}
+
 // 简化版 Agent 实现，支持流式输出，不工作
 export const createWorkflowAgent = async (
   openaiApiKey: string,
@@ -17,9 +35,9 @@ export const createWorkflowAgent = async (
   class Agent {
     name: string;
     systemPrompt: string;
-    tools: any[];
+    tools: Tool[];
 
-    constructor(name: string, systemPrompt: string, tools: any[] = []) {
+    constructor(name: string, systemPrompt: string, tools: Tool[] = []) {
       this.name = name;
       this.systemPrompt = systemPrompt;
       this.tools = tools;
@@ -40,12 +58,12 @@ export const createWorkflowAgent = async (
         // 使用非流式响应先尝试
         try {
           const result = await llm.chat({
-            messages: messages as any,
+            messages: messages as ChatMessage[],
           });
 
           const content = result.message?.content || '';
           let nextAgent: string | undefined = undefined;
-          let updatedState = {...state};
+          const updatedState = {...state};
 
           if (content) {
             // Convert MessageContent to string if it's not already a string
@@ -111,13 +129,13 @@ export const createWorkflowAgent = async (
 
         // 备用：尝试使用流式响应
         const stream = await llm.chat({
-          messages: messages as any,
+          messages: messages as ChatMessage[],
           stream: true,
         });
 
         let accumulatedContent = "";
         let nextAgent: string | undefined = undefined;
-        let updatedState = {...state};
+        const updatedState = {...state};
 
         for await (const chunk of stream) {
           // Handle different chunk structures safely
@@ -138,7 +156,7 @@ export const createWorkflowAgent = async (
             // Safely check for choices without directly accessing the property
             else {
               // Use type assertion and 'in' operator to check for properties
-              const anyChunk = chunk as any;
+              const anyChunk = chunk as StreamChunk;
               
               // Check if choices exists and handle it
               if ('choices' in anyChunk && Array.isArray(anyChunk.choices) && anyChunk.choices.length > 0) {
@@ -223,7 +241,7 @@ export const createWorkflowAgent = async (
       return {
         streamEvents: async function*(this: WorkflowController) {
           let currentAgentName = this.rootAgentName;
-          let userInput = input.userMsg;
+          const userInput = input.userMsg;
           
           while (currentAgentName) {
             const currentAgent = this.agents[currentAgentName];

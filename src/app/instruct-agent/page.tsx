@@ -11,7 +11,7 @@ import { extractTextFromFile } from '@/lib/instruct-agent/file-parser';
 import { useSidebar } from '@/components/SidebarContext';
 
 interface CodeProps {
-  node?: any;
+  node?: React.ReactNode;
   inline?: boolean;
   className?: string;
   children?: React.ReactNode;
@@ -178,7 +178,6 @@ export default function InstructAgentPage() {
               // 尝试解析JSON内容
               const parsedContent = JSON.parse(content);
               
-            
               // 处理错误消息
               if (parsedContent.error) {
                 setError(parsedContent.error);
@@ -264,7 +263,7 @@ export default function InstructAgentPage() {
               <h4 className="text-base font-semibold text-gray-800 mb-2">{children}</h4>
             ),
             // Handle code blocks with proper formatting
-            code({ node, inline, className, children, ...props }: CodeProps) {
+            code({ inline, className, children, ...props }: CodeProps) {
               const match = /language-(\w+)/.exec(className || '');
               // Ensure children is always a string
               const codeContent = Array.isArray(children) 

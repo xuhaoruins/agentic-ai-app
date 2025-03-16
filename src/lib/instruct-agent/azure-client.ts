@@ -1,12 +1,14 @@
 import OpenAI from 'openai';
-import { ChatMessage } from '../types';
+// Remove unused import
+// import { ChatMessage } from '../types';
 
 type OpenAIChatRole = 'system' | 'user' | 'assistant';
 
-interface OpenAIChatMessage {
-  role: OpenAIChatRole;
-  content: string;
-}
+// Comment out unused interface
+// interface OpenAIChatMessage {
+//   role: OpenAIChatRole;
+//   content: string;
+// }
 
 export const createChatClient = (endpoint: string, apiKey: string) => {
   console.log('Creating chat client with endpoint:', endpoint);
@@ -23,15 +25,16 @@ export const createChatClient = (endpoint: string, apiKey: string) => {
   }
 };
 
-interface BingSearchResponse {
-  webPages?: {
-    value: Array<{
-      name: string;
-      url: string;
-      snippet: string;
-    }>;
-  };
-}
+// Comment out unused interface
+// interface BingSearchResponse {
+//   webPages?: {
+//     value: Array<{
+//       name: string;
+//       url: string;
+//       snippet: string;
+//     }>;
+//   };
+// }
 
 export const createSearchClient = (apiKey: string) => {
   return {
