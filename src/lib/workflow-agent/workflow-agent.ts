@@ -57,8 +57,17 @@ export const createWorkflowAgent = async (
 
         // 使用非流式响应先尝试
         try {
+          // Convert any non-standard roles (like "developer") to "user" role
+          const compatibleMessages = messages.map(msg => {
+            // Check if the role is a standard one accepted by the API
+            if (msg.role === "developer" || !["system", "user", "assistant", "function", "tool"].includes(msg.role)) {
+              return { ...msg, role: "user" };
+            }
+            return msg;
+          });
+          
           const result = await llm.chat({
-            messages: messages as ChatMessage[],
+            messages: compatibleMessages,
           });
 
           const content = result.message?.content || '';
