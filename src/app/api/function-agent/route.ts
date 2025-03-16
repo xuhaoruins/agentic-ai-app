@@ -161,7 +161,10 @@ async function queryPricingWithStreamingResponse(
   
   // Only use functions when tools are explicitly selected
   // Updated to ensure each function has the correct type
-  const functions: ChatCompletionCreateParams.Function[] = enabledTools.map(tool => tool.functionDefinition as ChatCompletionCreateParams.Function);
+  const functions: ChatCompletionCreateParams.Function[] = enabledTools.map(tool => {
+    // First cast to unknown, then to the specific type to avoid direct type mismatch
+    return tool.functionDefinition as unknown as ChatCompletionCreateParams.Function;
+  });
   const shouldUseFunctions = functions.length > 0;
   
   console.log(`Tool selection status: ${hasSelectedTools ? 'Tools selected' : 'No tools selected'}`);
