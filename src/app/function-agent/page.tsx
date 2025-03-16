@@ -21,8 +21,8 @@ export default function FunctionAgentPage() {
   const { isExpanded } = useSidebar();
   const [results, setResults] = useState<ResultItem[]>([]);
   const [resultType, setResultType] = useState<string>('price');
-  // Removing unused _filter variable
-  const [filter, setFilter] = useState(''); 
+  // Using underscore prefix to indicate intentionally unused state variable
+  const [_filter, setFilter] = useState(''); 
   const [chatHeight, setChatHeight] = useState('450px');
   const [selectedTools, setSelectedTools] = useState<ToolSelection>({
     toolIds: availableTools.filter(t => t.enabled).map(t => t.id)
@@ -51,7 +51,10 @@ export default function FunctionAgentPage() {
     items: ResultItem[], 
     filter: string, 
     resultType?: string,
-    // Using underscore prefix to indicate intentionally unused parameter
+    /**
+     * AI response data reserved for future implementation
+     * @remarks Currently not used but kept for API compatibility
+     */
     _aiResponse?: string
   }) => {
     setResults(items);
@@ -59,7 +62,6 @@ export default function FunctionAgentPage() {
     setResultType(resultType);
     // Log filter to console instead of displaying it
     console.log(`Query Filter for ${resultType}:`, filter);
-    // aiResponse is intentionally not used but kept for future implementation
   };
 
   const handleToolSelectionChange = (selection: ToolSelection) => {
@@ -67,9 +69,11 @@ export default function FunctionAgentPage() {
     setSelectedTools(selection);
   };
 
-  // Keep this function for future use
-  // This function is unused but might be needed for future implementation
-  const handleClearResults = () => {
+  /**
+   * Function reserved for future implementation to clear results
+   * @remarks Currently not used but kept for future functionality
+   */
+  const _handleClearResults = () => {
     setResults([]);
     setFilter('');
   };
