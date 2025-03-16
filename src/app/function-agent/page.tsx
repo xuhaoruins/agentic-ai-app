@@ -17,6 +17,14 @@ type ResultItem = PricingItem | {
   datePublished?: string;
 };
 
+// Import or define the ResultsData type to match ChatInterface expectations
+interface ResultsData {
+  items: Record<string, unknown>[];
+  filter: string;
+  resultType?: string;
+  _aiResponse?: string;
+}
+
 export default function FunctionAgentPage() {
   const { isExpanded } = useSidebar();
   const [results, setResults] = useState<ResultItem[]>([]);
@@ -47,17 +55,10 @@ export default function FunctionAgentPage() {
     return () => window.removeEventListener('resize', updateChatHeight);
   }, []);
 
-  const handleResults = ({items, filter, resultType = 'price', _aiResponse}: {
-    items: ResultItem[], 
-    filter: string, 
-    resultType?: string,
-    /**
-     * AI response data reserved for future implementation
-     * @remarks Currently not used but kept for API compatibility
-     */
-    _aiResponse?: string
-  }) => {
-    setResults(items);
+  const handleResults = (data: ResultsData) => {
+    const { items, filter, resultType = 'price', _aiResponse } = data;
+    // Cast the items to the expected ResultItem[] type
+    setResults(items as unknown as ResultItem[]);
     setFilter(filter);
     setResultType(resultType);
     // Log filter to console instead of displaying it
