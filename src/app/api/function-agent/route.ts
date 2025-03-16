@@ -192,7 +192,7 @@ async function queryPricingWithStreamingResponse(
 async function handleFirstCompletion(
   client: OpenAI,
   prompt: string,
-  functions: any[],
+  functions: Record<string, unknown>[], // Changed from any[] to Record<string, unknown>[]
   azureClient: AzureOpenAI,
   controller: ReadableStreamDefaultController,
   encoder: TextEncoder,

@@ -66,7 +66,7 @@ export interface WorkflowAgentEvent {
     agent_name?: string;
     content?: string;
     tool_name?: string;
-    tool_args?: Record<string, any>;
+    tool_args?: Record<string, unknown>; // Changed from any to unknown
     tool_output?: string;
     tool_calls?: Array<{tool_name: string}>;
   };

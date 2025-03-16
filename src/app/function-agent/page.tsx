@@ -21,7 +21,8 @@ export default function FunctionAgentPage() {
   const { isExpanded } = useSidebar();
   const [results, setResults] = useState<ResultItem[]>([]);
   const [resultType, setResultType] = useState<string>('price');
-  const [filter, setFilter] = useState('');
+  // Keep filter in state as it may be used later or for debugging purposes
+  const [filter, setFilter] = useState(''); 
   const [chatHeight, setChatHeight] = useState('450px');
   const [selectedTools, setSelectedTools] = useState<ToolSelection>({
     toolIds: availableTools.filter(t => t.enabled).map(t => t.id)
@@ -50,6 +51,7 @@ export default function FunctionAgentPage() {
     items: ResultItem[], 
     filter: string, 
     resultType?: string,
+    // Keep aiResponse in parameter as it might be used in the future
     aiResponse?: string
   }) => {
     setResults(items);
@@ -57,6 +59,7 @@ export default function FunctionAgentPage() {
     setResultType(resultType);
     // Log filter to console instead of displaying it
     console.log(`Query Filter for ${resultType}:`, filter);
+    // aiResponse is intentionally not used but kept for future implementation
   };
 
   const handleToolSelectionChange = (selection: ToolSelection) => {
@@ -64,6 +67,9 @@ export default function FunctionAgentPage() {
     setSelectedTools(selection);
   };
 
+  // Keep this function for future use
+  // This function is unused but might be needed for future implementation
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleClearResults = () => {
     setResults([]);
     setFilter('');
