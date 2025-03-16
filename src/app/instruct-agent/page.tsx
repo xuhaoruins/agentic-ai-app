@@ -506,6 +506,7 @@ export default function InstructAgentPage() {
                     accept=".txt,.pdf,.docx,.md"
                     className="hidden"
                     disabled={isLoading || isProcessingFile}
+                    title="Upload document"
                   />
                   
                   <button

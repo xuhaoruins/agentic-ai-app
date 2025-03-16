@@ -8,6 +8,7 @@ import ToolsBox from '@/components/function-agent/ToolsBox';
 import { availableTools } from '@/lib/function-agent/tools-schema';
 import Image from 'next/image';
 import { useSidebar } from '@/components/SidebarContext';
+import styles from './function-agent.module.css';
 
 // Define a type that can handle different result types
 type ResultItem = PricingItem | {
@@ -48,6 +49,9 @@ export default function FunctionAgentPage() {
       const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight * 0.85));
       
       setChatHeight(`${calculatedHeight}px`);
+      
+      // Update CSS variable for the chat height
+      document.documentElement.style.setProperty('--chat-height', `${calculatedHeight}px`);
     };
 
     updateChatHeight();
@@ -134,16 +138,14 @@ export default function FunctionAgentPage() {
             <div className="flex flex-row gap-4">
               {/* Chat Interface */}
               <div 
-                style={{ height: chatHeight }} 
-                className="w-3/4 rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all"
+                className={`${styles.chatContainer} w-3/4 rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all`}
               >
                 <ChatInterface onResults={handleResults} selectedTools={selectedTools} />
               </div>
               
               {/* Tools Box */}
               <div 
-                style={{ height: chatHeight }}
-                className="w-1/4 rounded-xl overflow-hidden transition-all"
+                className={`${styles.chatContainer} w-1/4 rounded-xl overflow-hidden transition-all`}
               >
                 <ToolsBox tools={availableTools} onToolSelectionChange={handleToolSelectionChange} />
               </div>
