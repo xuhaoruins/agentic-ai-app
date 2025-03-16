@@ -1,4 +1,4 @@
-import { OpenAI, MessageType, ChatMessage, ToolCallLLMMessageOptions } from "llamaindex";
+import { OpenAI, ChatMessage, ToolCallLLMMessageOptions } from "llamaindex";
 import { WorkflowState } from "../types";
 import { ChatMessage as UserChatMessage } from "../types";
 
@@ -58,22 +58,13 @@ export const createWorkflowAgent = async (
         // Convert the messages to the proper type
         const convertToTypedMessages = (messages: { role: string; content: string; id?: string }[]): ChatMessage<ToolCallLLMMessageOptions>[] => {
           return messages.map(msg => {
-            let role: MessageType;
-            
-            // Convert string roles to MessageType enum
-            if (msg.role === 'user') {
-              role = MessageType.USER;
-            } else if (msg.role === 'assistant') {
-              role = MessageType.ASSISTANT;
-            } else if (msg.role === 'system') {
-              role = MessageType.SYSTEM;
-            } else {
-              // Default to USER if role is unknown
-              role = MessageType.USER;
-            }
+            // Map roles directly using string literals
+            const roleValue = msg.role === 'user' ? 'user' : 
+                             msg.role === 'assistant' ? 'assistant' : 
+                             msg.role === 'system' ? 'system' : 'user';
             
             return {
-              role,
+              role: roleValue as any, // Cast to any to avoid type issues
               content: msg.content,
               id: msg.id
             };
