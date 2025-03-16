@@ -21,8 +21,8 @@ export default function FunctionAgentPage() {
   const { isExpanded } = useSidebar();
   const [results, setResults] = useState<ResultItem[]>([]);
   const [resultType, setResultType] = useState<string>('price');
-  // Using underscore prefix to indicate intentionally unused variable
-  const [_filter, setFilter] = useState(''); 
+  // Removing unused _filter variable
+  const [filter, setFilter] = useState(''); 
   const [chatHeight, setChatHeight] = useState('450px');
   const [selectedTools, setSelectedTools] = useState<ToolSelection>({
     toolIds: availableTools.filter(t => t.enabled).map(t => t.id)
@@ -47,13 +47,12 @@ export default function FunctionAgentPage() {
     return () => window.removeEventListener('resize', updateChatHeight);
   }, []);
 
-  const handleResults = ({items, filter, resultType = 'price', aiResponse}: {
+  const handleResults = ({items, filter, resultType = 'price', _aiResponse}: {
     items: ResultItem[], 
     filter: string, 
     resultType?: string,
     // Using underscore prefix to indicate intentionally unused parameter
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    aiResponse?: string
+    _aiResponse?: string
   }) => {
     setResults(items);
     setFilter(filter);
@@ -70,7 +69,6 @@ export default function FunctionAgentPage() {
 
   // Keep this function for future use
   // This function is unused but might be needed for future implementation
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleClearResults = () => {
     setResults([]);
     setFilter('');

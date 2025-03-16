@@ -2,7 +2,8 @@ import OpenAI from 'openai';
 // Remove unused import
 // import { ChatMessage } from '../types';
 
-type OpenAIChatRole = 'system' | 'user' | 'assistant';
+// Comment out unused type
+// type OpenAIChatRole = 'system' | 'user' | 'assistant';
 
 // Comment out unused interface
 // interface OpenAIChatMessage {
