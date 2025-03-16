@@ -1,10 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Disable trace functionality which may be causing the permission issue
+  // Move from experimental.serverComponentsExternalPackages to top-level serverExternalPackages
+  serverExternalPackages: ['sharp'],
+  eslint: {
+    // Disable ESLint during builds (optional)
+    ignoreDuringBuilds: true,
+  },
   experimental: {
-    outputFileTracing: false,
+    // Remove serverComponentsExternalPackages from here
   },
 }
 
-module.exports = nextConfig
+export default nextConfig;

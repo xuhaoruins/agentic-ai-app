@@ -39,7 +39,7 @@ export interface Tool {
   id: string;
   name: string;
   description: string;
-  functionDefinition: any;
+  functionDefinition: Record<string, unknown>; // Changed from any to Record<string, unknown>
   enabled: boolean;
 }
 

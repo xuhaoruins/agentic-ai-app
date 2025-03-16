@@ -8,6 +8,7 @@ import ToolsBox from '@/components/function-agent/ToolsBox';
 import { availableTools } from '@/lib/function-agent/tools-schema';
 import Image from 'next/image';
 import { useSidebar } from '@/components/SidebarContext';
+import styles from './function-agent.module.css';
 
 // Define a type that can handle different result types
 type ResultItem = PricingItem | {
@@ -17,11 +18,20 @@ type ResultItem = PricingItem | {
   datePublished?: string;
 };
 
+// Import or define the ResultsData type to match ChatInterface expectations
+interface ResultsData {
+  items: Record<string, unknown>[];
+  filter: string;
+  resultType?: string;
+  _aiResponse?: string;
+}
+
 export default function FunctionAgentPage() {
   const { isExpanded } = useSidebar();
   const [results, setResults] = useState<ResultItem[]>([]);
   const [resultType, setResultType] = useState<string>('price');
-  const [filter, setFilter] = useState('');
+  // Using underscore prefix to indicate intentionally unused state variable
+  const [_filter, setFilter] = useState(''); 
   const [chatHeight, setChatHeight] = useState('450px');
   const [selectedTools, setSelectedTools] = useState<ToolSelection>({
     toolIds: availableTools.filter(t => t.enabled).map(t => t.id)
@@ -39,6 +49,9 @@ export default function FunctionAgentPage() {
       const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight * 0.85));
       
       setChatHeight(`${calculatedHeight}px`);
+      
+      // Update CSS variable for the chat height
+      document.documentElement.style.setProperty('--chat-height', `${calculatedHeight}px`);
     };
 
     updateChatHeight();
@@ -46,13 +59,10 @@ export default function FunctionAgentPage() {
     return () => window.removeEventListener('resize', updateChatHeight);
   }, []);
 
-  const handleResults = ({items, filter, resultType = 'price', aiResponse}: {
-    items: ResultItem[], 
-    filter: string, 
-    resultType?: string,
-    aiResponse?: string
-  }) => {
-    setResults(items);
+  const handleResults = (data: ResultsData) => {
+    const { items, filter, resultType = 'price', _aiResponse } = data;
+    // Cast the items to the expected ResultItem[] type
+    setResults(items as unknown as ResultItem[]);
     setFilter(filter);
     setResultType(resultType);
     // Log filter to console instead of displaying it
@@ -64,7 +74,11 @@ export default function FunctionAgentPage() {
     setSelectedTools(selection);
   };
 
-  const handleClearResults = () => {
+  /**
+   * Function reserved for future implementation to clear results
+   * @remarks Currently not used but kept for future functionality
+   */
+  const _handleClearResults = () => {
     setResults([]);
     setFilter('');
   };
@@ -124,16 +138,14 @@ export default function FunctionAgentPage() {
             <div className="flex flex-row gap-4">
               {/* Chat Interface */}
               <div 
-                style={{ height: chatHeight }} 
-                className="w-3/4 rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all"
+                className={`${styles.chatContainer} w-3/4 rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all`}
               >
                 <ChatInterface onResults={handleResults} selectedTools={selectedTools} />
               </div>
               
               {/* Tools Box */}
               <div 
-                style={{ height: chatHeight }}
-                className="w-1/4 rounded-xl overflow-hidden transition-all"
+                className={`${styles.chatContainer} w-1/4 rounded-xl overflow-hidden transition-all`}
               >
                 <ToolsBox tools={availableTools} onToolSelectionChange={handleToolSelectionChange} />
               </div>

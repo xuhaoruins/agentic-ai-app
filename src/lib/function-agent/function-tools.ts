@@ -133,7 +133,12 @@ function generateMockSearchResults(query: string) {
 }
 
 // Helper function to convert search results to PricingItem format
-function convertToCompatibleFormat(searchResults: any[]): PricingItem[] {
+function convertToCompatibleFormat(searchResults: Array<{
+  title?: string;
+  content?: string;
+  url?: string;
+  snippet?: string;
+}>): PricingItem[] {
     return searchResults.map(result => {
         return {
             // Required PricingItem fields

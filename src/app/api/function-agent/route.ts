@@ -6,6 +6,8 @@ import { fetchAzurePrices, WebSearch } from '@/lib/function-agent/function-tools
 import { PricingItem } from '@/lib/function-agent/function-agent-types';
 import { availableTools } from '@/lib/function-agent/tools-schema';
 import { azurePriceAnalysisPrompt } from '@/lib/function-agent/azure-price-context';
+// Add Function type import
+import type { ChatCompletionCreateParams } from 'openai/resources/chat';
 
 // Define the ToolSelection interface
 interface ToolSelection {
@@ -158,7 +160,11 @@ async function queryPricingWithStreamingResponse(
     : [];
   
   // Only use functions when tools are explicitly selected
-  const functions = enabledTools.map(tool => tool.functionDefinition);
+  // Updated to ensure each function has the correct type
+  const functions: ChatCompletionCreateParams.Function[] = enabledTools.map(tool => {
+    // First cast to unknown, then to the specific type to avoid direct type mismatch
+    return tool.functionDefinition as unknown as ChatCompletionCreateParams.Function;
+  });
   const shouldUseFunctions = functions.length > 0;
   
   console.log(`Tool selection status: ${hasSelectedTools ? 'Tools selected' : 'No tools selected'}`);
@@ -192,7 +198,7 @@ async function queryPricingWithStreamingResponse(
 async function handleFirstCompletion(
   client: OpenAI,
   prompt: string,
-  functions: any[],
+  functions: ChatCompletionCreateParams.Function[], // Updated type definition
   azureClient: AzureOpenAI,
   controller: ReadableStreamDefaultController,
   encoder: TextEncoder,

@@ -1,9 +1,10 @@
 //this file defines the schema for the tools used in the function agent
 // add tool schema here when add new tool
 
-
 import { Tool } from './function-agent-types';
-import { azureVmSize, azureRegions } from './azure-price-context';
+// Remove unused imports but keep the file reference in comment for documentation purposes 
+// These may be needed in the future or are used for documentation
+// import { azureVmSize, azureRegions } from './azure-price-context';
 
 /**
  * Available tools for the function agent

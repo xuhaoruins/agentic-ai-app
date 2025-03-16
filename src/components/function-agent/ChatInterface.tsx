@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { PricingItem, ToolSelection } from '@/lib/function-agent/function-agent-types';
+import { ToolSelection } from '@/lib/function-agent/function-agent-types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -13,7 +13,7 @@ type Message = {
 
 // Update ResultsData type to include resultType
 type ResultsData = {
-  items: any[]; // Generic item type to accommodate different result types
+  items: Array<Record<string, unknown>>; // Changed from any[] to Array<Record<string, unknown>>
   filter: string;
   resultType?: string;
   aiResponse?: string;
@@ -309,7 +309,7 @@ export default function ChatInterface({ onResults, selectedTools }: ChatInterfac
     const hasAzurePriceTool = selectedToolIds.includes('azure_price_query');
     const hasWebSearchTool = selectedToolIds.includes('web_search');
     
-    let queries = [];
+    const queries = []; // Changed from let to const
     if (hasAzurePriceTool) {
       queries.push(...exampleQueries.azure_price_query);
     }
