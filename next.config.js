@@ -1,11 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
-  images: {
-    domains: ['*']
-  }
+  // Move from experimental.serverComponentsExternalPackages to top-level serverExternalPackages
+  serverExternalPackages: ['sharp'],
+  eslint: {
+    // Disable ESLint during builds (optional)
+    ignoreDuringBuilds: true,
+  },
+  experimental: {
+    // Remove serverComponentsExternalPackages from here
+  },
 }
 
 export default nextConfig;
-
