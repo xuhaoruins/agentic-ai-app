@@ -195,7 +195,7 @@ async function fallbackPDFExtraction(file: File): Promise<string> {
         pdfjs.GlobalWorkerOptions.workerSrc = '';
         
         const arrayBuffer = reader.result as ArrayBuffer;
-        const loadingTask = pdfjs.getDocument({ data: arrayBuffer, disableWorker: true });
+        const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         
         let text = `[Content extracted from ${file.name} using fallback method]\n\n`;
