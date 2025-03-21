@@ -40,6 +40,19 @@ jobs:
           context: .
           push: true
           tags: haxureg.azurecr.io/agentic-ai-app:${{ steps.timestamp.outputs.timestamp }}
+          # Add build options for more verbose output
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+          # Output build logs even on failure
+          outputs: type=docker,dest=/tmp/image.tar
+
+      - name: Upload build logs if failed
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-logs
+          path: /tmp/image.tar
+          retention-days: 5
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

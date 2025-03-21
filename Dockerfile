@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:18-alpine
 
 # Create a non-root user early
 RUN addgroup --system --gid 1001 nodejs \
@@ -11,15 +11,15 @@ WORKDIR /app
 RUN chown nextjs:nodejs /app
 
 # Copy package files with proper ownership
-COPY --chown=nextjs:nodejs package.json package-lock.json* ./
+COPY --chown=nextjs:nodejs package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN npm install -g pnpm && pnpm install
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
 # Copy rest of the application with proper ownership
 COPY --chown=nextjs:nodejs . .
 
-# Build the application
+# Build the application with detailed error output
 RUN pnpm run build
 
 # Switch to non-root user
