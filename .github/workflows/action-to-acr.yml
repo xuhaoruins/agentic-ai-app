@@ -1,0 +1,33 @@
+name: Build and Push to ACR
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches: [dev]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Azure Container Registry Login 
+      uses: azure/docker-login@v1
+      with:
+        login-server: haxureg.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+    
+    - name: Generate timestamp
+      id: timestamp
+      run: echo "timestamp=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+    
+    - name: Build and Push the Docker image
+      run: | 
+        docker build . -t haxureg.azurecr.io/agentic-ai-app:${{ steps.timestamp.outputs.timestamp }}
+        docker push haxureg.azurecr.io/agentic-ai-app:${{ steps.timestamp.outputs.timestamp }}
