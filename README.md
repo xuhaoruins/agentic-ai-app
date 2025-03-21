@@ -23,6 +23,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## Dependencies
 
 This project uses:
+
 - Next.js
 - React 19
 - CopilotKit v1.6.0
@@ -61,7 +62,6 @@ This project implements a multi-agent AI application with specialized components
 - `/app/api/instruct-agent/` - Processes document uploads and prompt instructions
 - `/app/api/workflow-agent/` - Coordinates multi-agent workflows with state management
 
-
 ## Getting Started
 
 First, clone the repository:
@@ -93,7 +93,6 @@ pnpm dev
 
 Create a `.env.local` file with the following environment variables:
 
-
 ## Deployment
 
 ### Deploy on Azure Static Web Apps
@@ -101,24 +100,22 @@ Create a `.env.local` file with the following environment variables:
 To deploy this project using Azure Static Web Apps, follow these steps:
 
 1. **Create a new Static Web App**:
+
    - Go to the [Azure Portal](https://portal.azure.com/).
    - Click on "Create a resource" and search for "Static Web App".
    - Click "Create" and fill in the required details.
-
 2. **Configure the build and deployment settings**:
-   - keep default
 
+   - keep default
 3. **Connect to your GitHub repository**:
+
    - Authorize Azure to access your GitHub account.
    - Select the repository and branch you want to deploy.
-
 4. **Deploy the app**:
+
    - Click "Review + create" and then "Create".
    - Azure will automatically build and deploy your app.
-
 5. **Monitor the deployment**:
+
    - You can monitor the deployment status in the Azure Portal.
    - Once the deployment is complete, you will receive a URL to access your app.
-
-For more details, refer to the [Azure Static Web Apps documentation](https://docs.microsoft.com/en-us/azure/static-web-apps/).
-
