@@ -7,8 +7,8 @@ import { SidebarProvider } from '@/components/SidebarContext';
 import { CopilotKit } from "@copilotkit/react-core";
 
 export const metadata: Metadata = {
-  title: 'Open MCP Client',
-  description: 'An open source MCP client built with CopilotKit 🪁',
+  title: 'Agentic AI App',
+  description: 'This is an AI Agent App designed to align with the end user’s desired outcomes.',
 }
 
 export default function RootLayout({

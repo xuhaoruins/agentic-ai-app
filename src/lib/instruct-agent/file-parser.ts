@@ -53,13 +53,34 @@ async function readTextFile(file: File): Promise<string> {
 }
 
 /**
- * Extract text from PDF
- * Note: In a production environment, you'd use a library like pdf.js
- * This is a simplified implementation for the demo
+ * Extract text from PDF using dynamic import
  */
 async function extractTextFromPDF(file: File): Promise<string> {
-  // This is a placeholder for actual PDF extraction
-  return `[PDF Content from ${file.name}]\n\nThis is a simplified text extraction. In a production environment, you would integrate a PDF parsing library.`;
+  try {
+    const pdfjsLib = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    
+    let extractedText = `[Content extracted from ${file.name}]\n\n`;
+    const pageCount = Math.min(pdf.numPages, 50);
+    for (let i = 1; i <= pageCount; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => 'str' in item ? item.str : '').join(' ');
+      extractedText += `--- Page ${i} ---\n${pageText}\n\n`;
+    }
+    
+    if (pdf.numPages > pageCount) {
+      extractedText += `[Note: Only showing first ${pageCount} pages of ${pdf.numPages} total pages]\n\n`;
+    }
+    
+    return extractedText;
+  } catch (error) {
+    console.error('Error extracting text from PDF:', error);
+    return `Failed to extract text from PDF "${file.name}". Error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try a different file format or extract the text manually.`;
+  }
 }
 
 /**
