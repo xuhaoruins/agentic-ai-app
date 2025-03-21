@@ -1,4 +1,8 @@
-FROM node:22-alpine
+FROM node:20-alpine3.18
+
+# Note: If you encounter rate limit issues with Docker Hub,
+# consider logging in with 'docker login' or using a specific image digest
+# instead of a floating tag.
 
 # Create a non-root user early
 RUN addgroup --system --gid 1001 nodejs \
