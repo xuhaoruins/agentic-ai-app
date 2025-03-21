@@ -4,7 +4,6 @@ import { ChatMessage } from '@/lib/types';
 import { getToolById } from '@/lib/instruct-agent/tools-config';
 
 // Using Edge runtime for improved performance with streaming responses
-// Note: This disables static generation for this API route, which is expected for dynamic API endpoints
 export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
@@ -21,17 +20,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 获取选定的工具和对应的系统提示
+    // Get the selected tool and system prompt
     const selectedTool = getToolById(tool);
-    console.log(`Selected tool: ${selectedTool.name}, System Prompt:`, systemPrompt); 
+    console.log(`Selected tool: ${selectedTool.name}, System Prompt:`, systemPrompt);
+    
+    // Check if prompt contains document context
+    const hasDocumentContext = prompt.includes("==== DOCUMENT CONTEXT ====");
+    console.log(`Prompt contains document context: ${hasDocumentContext}`);
+    if (hasDocumentContext) {
+      // Extract some sample of the document content for logging
+      const contextStart = prompt.indexOf("==== DOCUMENT CONTEXT ====");
+      const contextEnd = prompt.indexOf("==== END OF DOCUMENT CONTEXT ====");
+      if (contextStart > -1 && contextEnd > -1) {
+        const docSample = prompt.substring(contextStart, contextStart + 200) + "...";
+        console.log("Document context sample:", docSample);
+        
+        // Count how many documents are included
+        const docCount = (prompt.match(/\[Document \d+:/g) || []).length;
+        console.log(`Number of documents included: ${docCount}`);
+      }
+    }
 
-    // 创建一个 ReadableStream 来输出 SSE 数据
+    // Create a ReadableStream for SSE output
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         
         try {
-          // 初始化客户端
+          // Initialize clients
           const client = createChatClient(
             process.env.AZURE_OPENAI_ENDPOINT!,
             process.env.OPENAI_API_KEY!
@@ -41,7 +57,7 @@ export async function POST(req: NextRequest) {
             process.env.TAVILY_API_KEY!
           ) : null;
 
-          // 获取网络搜索结果（如果启用）
+          // Get web search results (if enabled)
           let webResults = '';
           if (webSearchEnabled && searchClient) {
             try {
@@ -76,19 +92,43 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // 准备聊天消息
+          // Prepare final prompt - ensure document context is preserved when web search is used
+          let finalUserPrompt = prompt;
+          if (webResults) {
+            // When web search is enabled and document context exists, we need to preserve both
+            if (hasDocumentContext) {
+              // Split the prompt to separate document context from user query
+              const docContextStart = prompt.indexOf("==== DOCUMENT CONTEXT ====");
+              const docContextEnd = prompt.indexOf("==== END OF DOCUMENT CONTEXT ====") + "==== END OF DOCUMENT CONTEXT ====".length;
+              
+              // Extract parts
+              const userQuery = prompt.substring(0, docContextStart).trim();
+              const docContext = prompt.substring(docContextStart, docContextEnd);
+              const finalInstructions = prompt.substring(docContextEnd).trim();
+              
+              // Combine with web results
+              finalUserPrompt = `Context from web search (top 3 results):\n${webResults}\n\n${docContext}\n\nUser query: ${userQuery}\n\n${finalInstructions}`;
+              
+              console.log("Combined document context and web search results");
+            } else {
+              // Just web search, no document context
+              finalUserPrompt = `Context from web search (top 3 results):\n${webResults}\n\nUser query: ${prompt}`;
+            }
+          }
+
+          // Prepare chat messages
           const formattedMessages = [
-            // 系统提示始终位于第一位
+            // System prompt always comes first
             { role: 'system', content: systemPrompt },
-            // 添加消息历史（不包括系统消息）
+            // Add message history (excluding system messages)
             ...messages.filter((m: ChatMessage) => m.role !== 'system').map((msg: ChatMessage) => ({
               role: msg.role as "system" | "user" | "assistant",
               content: msg.content
             })),
-            // 添加当前用户消息及上下文（如果有）
+            // Add current user message with context (if any)
             { 
               role: 'user', 
-              content: webResults ? `Context from web search (top 3 results):\n${webResults}\n\nUser query: ${prompt}` : prompt
+              content: finalUserPrompt
             }
           ];
 
@@ -96,8 +136,11 @@ export async function POST(req: NextRequest) {
           formattedMessages.slice(0, Math.min(3, formattedMessages.length)).forEach((msg, i) => {
             console.log(`[${i}] ${msg.role}: ${msg.content.substring(0, 50)}${msg.content.length > 50 ? '...' : ''}`);
           });
+          
+          // Log the total length of the prompt to help diagnose truncation issues
+          console.log(`Full prompt length: ${finalUserPrompt.length} characters`);
 
-          // 创建流式聊天完成
+          // Create streaming chat completion
           const openAIStream = await client.chat.completions.create({
             model: model,
             messages: formattedMessages,

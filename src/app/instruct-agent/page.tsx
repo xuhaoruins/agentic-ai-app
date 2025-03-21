@@ -17,6 +17,19 @@ interface CodeProps {
   children?: React.ReactNode;
 }
 
+interface UploadedFile {
+  file: File;
+  content: string | null;
+  isProcessing: boolean;
+}
+
+interface UploadedDocument {
+  file: File;
+  content: string;
+  isProcessing: boolean;
+  error?: string;
+}
+
 export default function InstructAgentPage() {
   const { isExpanded } = useSidebar();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -27,8 +40,8 @@ export default function InstructAgentPage() {
   const [systemPrompt, setSystemPrompt] = useState(tools[0].systemPrompt);
   const [error, setError] = useState<string | null>(null);
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [documentContext, setDocumentContext] = useState<UploadedDocument[]>([]);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [componentHeight, setComponentHeight] = useState('calc(100vh - 220px)');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,45 +95,125 @@ export default function InstructAgentPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    const file = files[0];
-    setUploadedFile(file);
     setIsProcessingFile(true);
+    setError(null);
     
-    try {
-      const text = await extractTextFromFile(file);
-      setFileContent(text);
-      
-      const fileMessage: ChatMessage = {
-        role: "assistant" as ChatRole,
-        content: `Processed file: ${file.name}\nSize: ${(file.size / 1024).toFixed(2)} KB\nType: ${file.type}`
-      };
-      setMessages(prev => [...prev, fileMessage]);
-    } catch (err) {
-      console.error('Error processing file:', err);
-      setError('Failed to process the uploaded file');
-    } finally {
-      setIsProcessingFile(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+    // Process all selected files
+    const filesArray = Array.from(files);
+    let hasAddedSystemMessage = false;
+    
+    for (const file of filesArray) {
+      try {
+        // Add a temporary processing document
+        const tempDoc: UploadedDocument = {
+          file,
+          content: "",
+          isProcessing: true
+        };
+        
+        setDocumentContext(prev => [...prev, tempDoc]);
+        
+        // Extract text from the file
+        const text = await extractTextFromFile(file);
+        
+        // Check if the text indicates an extraction error
+        const isExtractionError = text.includes("Failed to extract text from PDF") || 
+                                 text.includes("Unable to fully extract content");
+        
+        if (isExtractionError) {
+          // Update with error status
+          setDocumentContext(prev => 
+            prev.map(doc => 
+              doc.file.name === file.name && doc.isProcessing 
+                ? { ...doc, isProcessing: false, error: text, content: "" }
+                : doc
+            )
+          );
+          
+          // Add error message to chat
+          const errorMsg: ChatMessage = {
+            role: "assistant",
+            content: `It seems I cannot extract text from the file "${file.name}" because it's either scanned or in an unsupported format. Please try a different file or type your question directly.`
+          };
+          setMessages(prev => [...prev, errorMsg]);
+        } else {
+          // Successfully extracted content - update document context
+          setDocumentContext(prev => 
+            prev.map(doc => 
+              doc.file.name === file.name && doc.isProcessing 
+                ? { ...doc, isProcessing: false, content: text }
+                : doc
+            )
+          );
+          
+          // Add system message only once for all files
+          if (!hasAddedSystemMessage) {
+            const contextMsg: ChatMessage = {
+              role: "assistant",
+              content: `I've loaded ${filesArray.length} document(s) as context. You can now ask questions about the content.`
+            };
+            setMessages(prev => [...prev, contextMsg]);
+            hasAddedSystemMessage = true;
+          }
+        }
+      } catch (err) {
+        console.error('Error processing file:', err);
+        
+        // Update document with error
+        setDocumentContext(prev => 
+          prev.map(doc => 
+            doc.file.name === file.name && doc.isProcessing 
+              ? { ...doc, isProcessing: false, error: "Failed to process file" }
+              : doc
+          )
+        );
+        
+        setError(`Failed to process file: ${file.name}`);
+      }
     }
+    
+    setIsProcessingFile(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeDocument = (documentToRemove: UploadedDocument) => {
+    setDocumentContext(prev => prev.filter(doc => doc !== documentToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !fileContent) || isLoading) return;
+    if ((!input.trim() && documentContext.length === 0) || isLoading) return;
     setError(null);
 
-    // Combine user input with file content if available
-    const combinedInput = fileContent 
-      ? `${input}\n\nDocument Content:\n${fileContent}`
-      : input;
-
+    // Show only the user's input in the UI
     const userMessage: ChatMessage = { role: 'user', content: input };
-    
-    // Show original input in UI but send formatted message to API
     setMessages(prev => [...prev, userMessage]);
+    
+    // Construct the full prompt with document context
+    let combinedInput = input;
+    
+    // Add document context if available
+    const validDocuments = documentContext.filter(doc => doc.content && !doc.error);
+    if (validDocuments.length > 0) {
+      combinedInput += "\n\n==== DOCUMENT CONTEXT ====\n\n";
+      // Add each document with clear separation and document number
+      validDocuments.forEach((doc, index) => {
+        // Add a horizontal rule between documents for clarity except for first document
+        if (index > 0) {
+          combinedInput += "----------\n\n";
+        }
+        combinedInput += `[Document ${index + 1}: ${doc.file.name}]\n${doc.content}\n\n`;
+      });
+      combinedInput += "==== END OF DOCUMENT CONTEXT ====\n\nPlease answer based on the document context when relevant.";
+      
+      // Log info about the document context being included
+      console.log(`Including ${validDocuments.length} documents as context`);
+      validDocuments.forEach((doc, idx) => {
+        console.log(`Document ${idx+1}: ${doc.file.name} (${Math.round(doc.content.length/1024)}KB)`);
+      });
+    }
+
     setInput('');
-    setFileContent(null);
-    setUploadedFile(null);
     setIsLoading(true);
 
     try {
@@ -459,6 +552,50 @@ export default function InstructAgentPage() {
             </div>
 
             <div className="border-t border-gray-200 mt-auto relative z-10">
+              {documentContext.length > 0 && (
+                <div className="p-3 bg-blue-50 border-b border-blue-200">
+                  <div className="flex justify-between items-center mb-1">
+                    <h3 className="text-sm font-medium text-blue-700">Document Context</h3>
+                    <button 
+                      onClick={() => setDocumentContext([])}
+                      className="text-xs text-blue-600 hover:text-blue-800 transition-colors hover:bg-blue-100 px-2 py-1 rounded"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 max-w-full overflow-x-auto pb-1">
+                    {documentContext.map((doc, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`flex items-center px-3 py-1 rounded-lg text-sm border ${
+                          doc.error 
+                            ? 'bg-red-50 text-red-700 border-red-200' 
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}
+                      >
+                        <span className="material-icons-outlined mr-2 text-sm">
+                          {doc.error ? 'error_outline' : 'description'}
+                        </span>
+                        <span className="truncate max-w-[150px]" title={doc.file.name}>
+                          {doc.file.name}
+                        </span>
+                        {doc.isProcessing ? (
+                          <div className="ml-2 h-4 w-4 border-b-2 border-blue-600 rounded-full animate-spin"></div>
+                        ) : (
+                          <button 
+                            onClick={() => removeDocument(doc)}
+                            className="ml-2 text-current hover:text-blue-900"
+                            title="Remove document"
+                          >
+                            <span className="material-icons-outlined text-sm">close</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="p-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                 <div className="flex items-center gap-3">
                   <button
@@ -473,26 +610,10 @@ export default function InstructAgentPage() {
                     {webSearchEnabled ? 'Disable Web Search' : 'Enable Web Search'}
                   </button>
 
-                  {uploadedFile && (
-                    <div className="flex items-center bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-lg">
-                      <span className="material-icons-outlined mr-2 text-sm">description</span>
-                      <span className="text-sm truncate max-w-[150px]">{uploadedFile.name}</span>
-                      <button 
-                        onClick={() => {
-                          setUploadedFile(null);
-                          setFileContent(null);
-                        }}
-                        className="ml-2 text-blue-700 hover:text-blue-900"
-                      >
-                        <span className="material-icons-outlined text-sm">close</span>
-                      </button>
-                    </div>
-                  )}
-
                   {isProcessingFile && (
                     <div className="flex items-center text-sm text-gray-600">
                       <div className="animate-spin h-4 w-4 border-b-2 border-blue-600 rounded-full mr-2"></div>
-                      <span>Processing file...</span>
+                      <span>Processing files...</span>
                     </div>
                   )}
                 </div>
@@ -503,17 +624,18 @@ export default function InstructAgentPage() {
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileSelect}
-                    accept=".txt,.pdf,.docx,.md"
+                    accept=".pdf,.txt,.docx,.md"
                     className="hidden"
                     disabled={isLoading || isProcessingFile}
-                    title="Upload document"
+                    multiple
+                    title="Upload documents"
                   />
                   
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="p-2 text-gray-600 hover:bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-center transition-colors"
-                    title="Upload document"
+                    title="Upload documents"
                     disabled={isLoading || isProcessingFile}
                   >
                     <span className="material-icons-outlined">attach_file</span>
@@ -523,13 +645,15 @@ export default function InstructAgentPage() {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type your message here..."
+                    placeholder={documentContext.length > 0 
+                      ? "Ask questions about the uploaded documents..." 
+                      : "Type your message here..."}
                     className="flex-1 p-2 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-inner"
                     disabled={isLoading}
                   />
                   <button
                     type="submit"
-                    disabled={isLoading || (input.trim() === '' && !fileContent)}
+                    disabled={isLoading || (input.trim() === '' && documentContext.length === 0)}
                     className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border-none"
                   >
                     Send
