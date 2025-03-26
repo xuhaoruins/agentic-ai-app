@@ -1,6 +1,6 @@
-# Vibe Coding - Agentic AI Application
+# Agentic AI Application
 
-A modern AI agent platform built through collaborative coding between [@haxu](https://github.com/xuhaoruins) and AI agents, showcasing the future of human-AI development partnerships.
+**This is Vibe Coding Project** - A modern AI agent platform built through collaborative coding between [@xuhaoruins](https://github.com/xuhaoruins) and GitHub Copilot AI agents, showcasing the future of human-AI development partnerships and methodology.
 
 **Live Demo**: [https://agent.haxu.dev/](https://agent.haxu.dev/)
 
