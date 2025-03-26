@@ -4,6 +4,7 @@
 
 **Live Demo**: [https://agent.haxu.dev/](https://agent.haxu.dev/)
 
+
 ## Project Overview
 
 This project represents a new approach to software development - "Vibe Coding" - where the human author chats with AI agents to complete the entire development process collaboratively. The result is a multi-agent AI application with specialized components:
