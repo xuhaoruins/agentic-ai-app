@@ -16,7 +16,9 @@ export default function Home() {
             Agentic AI Apps
           </h1>
           <p className="mt-8 text-lg leading-8 text-gray-600">
-            This application demonstrates various forms and implementations of different AI agent architectures.
+          This is a vibe coding project, collaboratively created by the author and GitHub Copilot Agent. <br />
+          It is deployed using Azure Web App, Azure Functions, Azure OpenAI, and GitHub Model. <br />
+          The goal of the project is to demonstrate and validate various application forms of Agents.
           </p>
         </div>
 
