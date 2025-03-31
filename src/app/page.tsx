@@ -16,11 +16,11 @@ export default function Home() {
             Agentic AI Apps
           </h1>
           <p className="mt-8 text-lg leading-8 text-gray-600">
-            Choose an AI agent to help you with different Azure-related tasks
+            This application demonstrates various forms and implementations of different AI agent architectures.
           </p>
         </div>
 
-        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12 max-w-6xl mx-auto">
+        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 lg:gap-12 max-w-6xl mx-auto">
           {/* Function Agent Card */}
           <Link href="/function-agent" className="group">
             <div className="relative overflow-hidden rounded-2xl border-3 border-blue-300 bg-white p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-blue-400">
@@ -28,8 +28,8 @@ export default function Home() {
               <div className="relative">
                 <h2 className="text-2xl font-bold text-gray-900">Function Agent</h2>
                 <p className="mt-4 text-gray-600">
-                  Get accurate Azure pricing information using natural language queries. 
-                  Perfect for cost estimation and budget planning.
+                  An agent based on OpenAI function calling standards that allows free selection and invocation 
+                  of tools to perform specific tasks.
                 </p>
               </div>
             </div>
@@ -42,8 +42,8 @@ export default function Home() {
               <div className="relative">
                 <h2 className="text-2xl font-bold text-gray-900">Instruct Agent</h2>
                 <p className="mt-4 text-gray-600">
-                  Get assistance with documentation, code, text processing, and more 
-                  through a versatile AI chat interface.
+                  A prompt-based agent that transforms instructions packaged as system prompts
+                  into functional agents with specific capabilities.
                 </p>
               </div>
             </div>
@@ -56,8 +56,8 @@ export default function Home() {
               <div className="relative">
                 <h2 className="text-2xl font-bold text-gray-900">Workflow Agent</h2>
                 <p className="mt-4 text-gray-600">
-                  Experience a multi-step AI workflow with specialized agents for research, 
-                  writing, and review working together on complex tasks.
+                  A semi-autonomous agent capable of independently completing a series of tasks
+                  and returning results with minimal human intervention.
                 </p>
               </div>
             </div>
@@ -70,8 +70,8 @@ export default function Home() {
               <div className="relative">
                 <h2 className="text-2xl font-bold text-gray-900">MCP Agent</h2>
                 <p className="mt-4 text-gray-600">
-                  Configure and connect to multiple MCP servers for powerful distributed AI processing 
-                  capabilities via standard I/O and SSE connections.
+                  Add MCP tools to React agents to create versatile agents capable of handling
+                  a wide variety of tasks through multiple specialized capabilities.
                 </p>
               </div>
             </div>
@@ -80,7 +80,7 @@ export default function Home() {
 
         <div className="mt-16 text-center">
           <a 
-            href="https://github.com/xuhaoruins/agentic-ai-app"
+            href="https://github.com/xuhaodev/agentic-ai-app"
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
             target="_blank"
             rel="noopener noreferrer"
@@ -90,6 +90,12 @@ export default function Home() {
             </svg>
             View on GitHub
           </a>
+          
+          <div className="mt-4">
+            <p className="text-sm text-gray-600">
+              Contact the author: <a href="mailto:xuhaoruins@hotmail.com" className="text-blue-600 hover:text-blue-800 hover:underline">xuhaoruins@hotmail.com</a>
+            </p>
+          </div>
         </div>
       </div>
     </main>
